@@ -2,6 +2,8 @@
   "titulo": "Rotina Familiar",
   "subtitulo": "Luana, Atos, Lara Sthefany, Ana Laura e Amora · Araguaína-TO",
 
+  "avisos": { "lembretePendencias": "21:00" },
+
   "planilha": "https://script.google.com/macros/s/AKfycbyZVIwft2R-SFYk1lyHgfOLVpQY86FqsEks0q3eCk2goQwb0rBrPOfdB9v-uqXP2FaQXw/exec",
 
   "_ajuda": "dias: 0=domingo, 1=segunda ... 6=sábado. Use 'hora' (HH:MM) ou 'periodo' (manha, tarde, noite, dia). tipo: rotina, casa, pet, tela. Itens 'casa' e 'pet' têm caixinha de marcar; nos demais use \"marcar\": true.",
@@ -52,7 +54,7 @@
 
     { "periodo": "dia", "icone": "🗑️", "titulo": "Coleta de lixo", "detalhe": "O caminhão passa durante o dia", "dias": [2,4,6], "tipo": "casa" },
     { "periodo": "dia", "icone": "🐾", "titulo": "Cocô da Amora (área externa)", "detalhe": "3x por semana, junto com os dias de lixo", "dias": [2,4,6], "tipo": "pet" },
-    { "periodo": "noite", "icone": "🗑️", "titulo": "Lixo pra fora", "detalhe": "Para a coleta do dia seguinte", "dias": [1,3,5], "tipo": "casa" },
+    { "periodo": "noite", "icone": "🗑️", "titulo": "Lixo pra fora", "detalhe": "Para a coleta do dia seguinte", "aviso": "20:00", "dias": [1,3,5], "tipo": "casa" },
 
     { "periodo": "dia", "icone": "👕", "titulo": "Lavar os uniformes", "dias": [2,4], "tipo": "casa" },
     { "periodo": "dia", "icone": "🛏️", "titulo": "Lavar roupas de cama e toalhas", "dias": [3], "tipo": "casa" },
