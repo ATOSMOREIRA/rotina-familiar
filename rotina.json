@@ -2,7 +2,13 @@
   "titulo": "Rotina Familiar",
   "subtitulo": "Luana, Atos, Lara Sthefany, Ana Laura e Amora · Araguaína-TO",
 
-  "avisos": { "lembretePendencias": "21:00" },
+  "avisos": {
+    "atrasoMinutos": 30,
+    "prazoTarefasCasa": "20:30",
+    "lembretePendencias": "21:00",
+    "resumoManha": "07:00",
+    "resumoSemana": { "dia": 0, "hora": "20:00" }
+  },
 
   "planilha": "https://script.google.com/macros/s/AKfycbyZVIwft2R-SFYk1lyHgfOLVpQY86FqsEks0q3eCk2goQwb0rBrPOfdB9v-uqXP2FaQXw/exec",
 

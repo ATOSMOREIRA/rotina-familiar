@@ -16,7 +16,12 @@
  * O que é avisado vem do rotina.json:
  *   - itens com "hora": avisados na hora (use "avisar": false para não avisar);
  *   - itens com "aviso": "HH:MM": avisados nesse horário (ex.: Lixo pra fora);
- *   - "avisos": { "lembretePendencias": "21:00" }: resumo do que ainda falta fazer.
+ *   - "avisos" no rotina.json (cada um pode ser removido para desligar):
+ *       lembretePendencias "21:00"  resumo do que ainda falta fazer hoje
+ *       atrasoMinutos 30            avisa quando uma tarefa com horário passou do horário e não foi marcada
+ *       prazoTarefasCasa "20:30"    prazo das tarefas sem horário (zonas, fixas...): avisa o que não foi marcado
+ *       resumoManha "07:00"         o que ficou sem fazer ontem
+ *       resumoSemana {dia, hora}    resultado da semana (dia: 0=domingo ... 6=sábado)
  *
  * Importante: as chaves das tarefas aqui espelham as do index.html. Se mudar a regra
  * de tarefas lá (zonas, quinzenais...), mude aqui também.
@@ -29,6 +34,7 @@ const PERIODO_CHAVE_ = { manha: "08:00", tarde: "14:00", noite: "20:00" };
 
 /* ---------- lógica pura (sem APIs do Google, testável) ---------- */
 function pad2_(n) { return (n < 10 ? "0" : "") + n; }
+function ymdDe_(n) { const d = new Date(n * 864e5); return d.getUTCFullYear() + "-" + pad2_(d.getUTCMonth() + 1) + "-" + pad2_(d.getUTCDate()); }
 function mod_(a, n) { return ((a % n) + n) % n; }
 function diaNum_(ymd) { const p = ymd.split("-").map(Number); return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 864e5); }
 function diaSemana_(ymd) { return new Date(diaNum_(ymd) * 864e5).getUTCDay(); }
@@ -60,7 +66,7 @@ function zonasDaSemana_(dados, ymd) {
 function tarefasDoDia_(dados, ymd) {
   const lista = [];
   itensDoDia_(dados, ymd).filter(marcavel_).forEach(function (i) {
-    lista.push({ k: ymd + "|i|" + i.titulo + "|" + i._chave, nome: i.titulo });
+    lista.push({ k: ymd + "|i|" + i.titulo + "|" + i._chave, nome: i.titulo, hora: i.aviso || i.hora || null });
   });
   zonasDaSemana_(dados, ymd).forEach(function (p) {
     p.zona.areas.forEach(function (a) { lista.push({ k: ymd + "|area|" + a.nome, nome: a.nome, pessoa: p.nome }); });
@@ -74,7 +80,8 @@ function avisosDoDia_(dados, ymd) {
   itensDoDia_(dados, ymd).forEach(function (i) {
     const hora = i.aviso || (i.hora && i.avisar !== false ? i.hora : null);
     if (!hora) return;
-    out.push({ id: i.titulo + "|" + hora, hora: hora, titulo: (i.icone ? i.icone + " " : "") + i.titulo, mensagem: i.detalhe || ("Agora: " + i.titulo) });
+    out.push({ id: i.titulo + "|" + hora, hora: hora, nome: i.titulo, marcavel: marcavel_(i), k: ymd + "|i|" + i.titulo + "|" + i._chave,
+      titulo: (i.icone ? i.icone + " " : "") + i.titulo, mensagem: i.detalhe || ("Agora: " + i.titulo) });
   });
   return out;
 }
@@ -85,6 +92,45 @@ function mensagemPendencias_(dados, ymd, feitosSet) {
   const linhas = falta.slice(0, 10).map(function (t) { return "• " + t.nome + (t.pessoa ? " (" + t.pessoa + ")" : ""); });
   if (falta.length > 10) linhas.push("… e mais " + (falta.length - 10));
   return { titulo: "⏳ Faltam " + falta.length + " tarefa" + (falta.length > 1 ? "s" : "") + " hoje", mensagem: linhas.join("\n") };
+}
+
+// Tarefas sem horário (zonas, fixas, "ao longo do dia") que não foram marcadas
+function mensagemPrazo_(dados, ymd, feitosSet) {
+  const falta = tarefasDoDia_(dados, ymd).filter(function (t) { return !t.hora && !feitosSet[t.k]; });
+  if (!falta.length) return null;
+  const linhas = falta.slice(0, 10).map(function (t) { return "• " + t.nome + (t.pessoa ? " (" + t.pessoa + ")" : ""); });
+  if (falta.length > 10) linhas.push("… e mais " + (falta.length - 10));
+  return { titulo: "⚠️ Passou do prazo: " + falta.length + " tarefa" + (falta.length > 1 ? "s" : ""), mensagem: linhas.join("\n") };
+}
+
+// Resumo do dia anterior (ymd = ontem); null se nada ficou pendente
+function mensagemOntem_(dados, ymd, feitosSet) {
+  const todas = tarefasDoDia_(dados, ymd), falta = todas.filter(function (t) { return !feitosSet[t.k]; });
+  if (!falta.length) return null;
+  if (falta.length === todas.length) return { titulo: "📋 Ontem não teve marcações", mensagem: "Nenhuma das " + todas.length + " tarefas foi marcada. Se foram feitas, vale marcar no app." };
+  const linhas = falta.slice(0, 10).map(function (t) { return "• " + t.nome + (t.pessoa ? " (" + t.pessoa + ")" : ""); });
+  if (falta.length > 10) linhas.push("… e mais " + (falta.length - 10));
+  return { titulo: "📋 Ontem ficaram " + falta.length + " sem fazer", mensagem: linhas.join("\n") };
+}
+
+// Resultado da semana de segunda até ymd (inclusive)
+function mensagemSemana_(dados, ymd, feitosSet) {
+  const n = diaNum_(ymd), seg = n - mod_(diaSemana_(ymd) + 6, 7);
+  let total = 0, ok = 0; const pessoas = {}, falt = {};
+  for (let d = seg; d <= n; d++) {
+    tarefasDoDia_(dados, ymdDe_(d)).forEach(function (t) {
+      const f = !!feitosSet[t.k]; total++; if (f) ok++;
+      if (t.pessoa) { if (!pessoas[t.pessoa]) pessoas[t.pessoa] = { ok: 0, total: 0 }; pessoas[t.pessoa].total++; if (f) pessoas[t.pessoa].ok++; }
+      if (!f) falt[t.nome] = (falt[t.nome] || 0) + 1;
+    });
+  }
+  const pct = total ? Math.round(100 * ok / total) : 0;
+  const linhas = [ok + " de " + total + " tarefas feitas"];
+  const ps = Object.keys(pessoas).map(function (p) { return p + " " + Math.round(100 * pessoas[p].ok / pessoas[p].total) + "%"; });
+  if (ps.length) linhas.push(ps.join(" · "));
+  const esq = Object.keys(falt).filter(function (k) { return falt[k] >= 2; }).sort(function (a, b) { return falt[b] - falt[a]; }).slice(0, 3);
+  if (esq.length) linhas.push("Mais esquecidas: " + esq.map(function (k) { return k + " (" + falt[k] + "x)"; }).join(", "));
+  return { titulo: (pct >= 80 ? "🌟" : "📊") + " Semana: " + pct + "% feito", mensagem: linhas.join("\n"), segunda: ymdDe_(seg) };
 }
 
 /* ---------- com as APIs do Google ---------- */
@@ -100,18 +146,20 @@ function carregarRotina_() {
   return JSON.parse(txt);
 }
 
-function feitosDoDia_(ymd) {
+// Chaves marcadas entre duas datas (AAAA-MM-DD, inclusive)
+function feitosEntre_(ini, fim) {
   const s = aba_(), n = s.getLastRow(), set = {};
   if (n > 1) s.getRange(2, 1, n - 1, 2).getValues().forEach(function (r) {
-    if (r[1] === true && String(r[0]).slice(0, 10) === ymd) set[String(r[0])] = 1;
+    const d = String(r[0]).slice(0, 10);
+    if (r[1] === true && d >= ini && d <= fim) set[String(r[0])] = 1;
   });
   return set;
 }
 
-function enviar_(titulo, mensagem) {
+function enviar_(titulo, mensagem, click) {
   UrlFetchApp.fetch("https://ntfy.sh/", {
     method: "post", contentType: "application/json", muteHttpExceptions: true,
-    payload: JSON.stringify({ topic: NTFY_TOPICO, title: titulo, message: mensagem, click: SITE, priority: 3 })
+    payload: JSON.stringify({ topic: NTFY_TOPICO, title: titulo, message: mensagem, click: click || SITE, priority: 3 })
   });
 }
 
@@ -121,7 +169,7 @@ function verificar() {
   const ymd = agora.slice(0, 10), min = hhmm_(agora.slice(11));
   const dados = carregarRotina_(); if (!dados) return;
   const props = PropertiesService.getScriptProperties();
-  const devido = function (hora) { const m = hhmm_(hora); return min >= m && min - m <= 20; };
+  const devido = function (hora, extra) { const m = hhmm_(hora) + (extra || 0); return min >= m && min - m <= 20; };
   const jaFoi = function (id) { return props.getProperty("env|" + ymd + "|" + id) === "1"; };
   const marcar = function (id) { props.setProperty("env|" + ymd + "|" + id, "1"); };
 
@@ -129,11 +177,48 @@ function verificar() {
     if (devido(a.hora) && !jaFoi(a.id)) { marcar(a.id); enviar_(a.titulo, a.mensagem); }
   });
 
-  const lp = dados.avisos && dados.avisos.lembretePendencias;
-  if (lp && devido(lp) && !jaFoi("pendencias")) {
+  const cfg = dados.avisos || {};
+  const feitosHoje = feitosEntre_(ymd, ymd);
+
+  // 1) tarefa com horário que passou do horário e não foi marcada
+  const atraso = cfg.atrasoMinutos === undefined ? 30 : cfg.atrasoMinutos;
+  if (atraso !== false && atraso !== null) {
+    avisosDoDia_(dados, ymd).forEach(function (a) {
+      if (a.marcavel && devido(a.hora, atraso) && !feitosHoje[a.k] && !jaFoi("atraso|" + a.id)) {
+        marcar("atraso|" + a.id);
+        enviar_("⏰ Atrasado: " + a.nome, "Era às " + a.hora + " e ainda não foi marcado como feito.");
+      }
+    });
+  }
+
+  // 2) prazo das tarefas sem horário (zonas, fixas...)
+  if (cfg.prazoTarefasCasa && devido(cfg.prazoTarefasCasa) && !jaFoi("prazo")) {
+    marcar("prazo");
+    const m = mensagemPrazo_(dados, ymd, feitosHoje);
+    if (m) enviar_(m.titulo, m.mensagem);
+  }
+
+  // 3) lembrete geral do que falta no dia
+  if (cfg.lembretePendencias && devido(cfg.lembretePendencias) && !jaFoi("pendencias")) {
     marcar("pendencias");
-    const m = mensagemPendencias_(dados, ymd, feitosDoDia_(ymd));
+    const m = mensagemPendencias_(dados, ymd, feitosHoje);
     enviar_(m.titulo, m.mensagem);
+  }
+
+  // 4) resumo de ontem, logo cedo
+  if (cfg.resumoManha && devido(cfg.resumoManha) && !jaFoi("ontem")) {
+    marcar("ontem");
+    const y = ymdDe_(diaNum_(ymd) - 1), m = mensagemOntem_(dados, y, feitosEntre_(y, y));
+    if (m) enviar_(m.titulo, m.mensagem, SITE + "#v=dia&d=" + y);
+  }
+
+  // 5) resultado da semana
+  const rs = cfg.resumoSemana;
+  if (rs && diaSemana_(ymd) === rs.dia && devido(rs.hora) && !jaFoi("semana")) {
+    marcar("semana");
+    const seg = ymdDe_(diaNum_(ymd) - mod_(diaSemana_(ymd) + 6, 7));
+    const m = mensagemSemana_(dados, ymd, feitosEntre_(seg, ymd));
+    enviar_(m.titulo, m.mensagem, SITE + "#v=resumo&d=" + ymd);
   }
 
   // limpa o controle de dias antigos
