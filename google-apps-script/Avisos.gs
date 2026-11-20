@@ -27,6 +27,10 @@
  * de tarefas lá (zonas, quinzenais...), mude aqui também.
  */
 const NTFY_TOPICO = "troque-por-um-nome-longo-e-secreto";
+// Token da sua conta gratuita do ntfy (começa com tk_). Sem ele, o ntfy limita o envio pelo endereço
+// de rede do Google, que é compartilhado, e recusa os avisos com o erro 429.
+// Como obter: ntfy.sh/app > Sign up > menu Account > Access tokens > Create token.
+const NTFY_TOKEN = "";
 const SITE = "https://atosmoreira.github.io/rotina-familiar/";
 const FUSO = "America/Araguaina";
 const URL_ROTINA = "https://raw.githubusercontent.com/ATOSMOREIRA/rotina-familiar/main/rotina.json";
@@ -159,13 +163,16 @@ function feitosEntre_(ini, fim) {
 // Envia pelo ntfy. Devolve true se o ntfy aceitou; registra o motivo no log se não aceitou.
 function enviar_(titulo, mensagem, click) {
   try {
+    const cab = NTFY_TOKEN ? { Authorization: "Bearer " + NTFY_TOKEN } : {};
     const r = UrlFetchApp.fetch("https://ntfy.sh/", {
-      method: "post", contentType: "application/json", muteHttpExceptions: true,
+      method: "post", contentType: "application/json", muteHttpExceptions: true, headers: cab,
       payload: JSON.stringify({ topic: NTFY_TOPICO, title: titulo, message: mensagem, click: click || SITE, priority: 3 })
     });
     const cod = r.getResponseCode();
     if (cod >= 200 && cod < 300) return true;
-    Logger.log("ntfy recusou o aviso (" + cod + "): " + r.getContentText().slice(0, 300));
+    Logger.log("ntfy recusou o aviso (" + cod + "): " + r.getContentText().slice(0, 300) +
+      (cod === 429 ? "  >> Preencha NTFY_TOKEN no topo do arquivo com o token da sua conta do ntfy." : "") +
+      (cod === 401 || cod === 403 ? "  >> O token está errado ou foi apagado." : ""));
   } catch (e) {
     Logger.log("Falha ao falar com o ntfy: " + e);
   }
