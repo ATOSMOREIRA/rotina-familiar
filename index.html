@@ -4,99 +4,60 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rotina Familiar</title>
+<style id="tema"></style>
 <style>
-  :root { --bg:#f6f7fb; --card:#fff; --txt:#1f2430; --mut:#6b7280; --acc:#4f6bed; --hoje:#e8edff; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#14161c; --card:#1d2029; --txt:#e8eaf0; --mut:#9aa1b0; --acc:#7c93ff; --hoje:#262c46; }
-  }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--txt); }
-  header { display:flex; align-items:center; justify-content:space-between; gap:12px;
-           padding:16px; max-width:900px; margin:0 auto; flex-wrap:wrap; }
-  h1 { margin:0; font-size:1.4rem; }
-  .status { color:var(--mut); font-size:.8rem; }
-  button { background:var(--acc); color:#fff; border:0; border-radius:8px; padding:10px 16px;
-           font-size:.95rem; cursor:pointer; }
-  button:disabled { opacity:.6; cursor:wait; }
-  main { max-width:900px; margin:0 auto; padding:0 16px 32px; display:grid; gap:12px;
-         grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
-  .dia { background:var(--card); border-radius:12px; padding:14px; box-shadow:0 1px 3px #0001; }
-  .dia.hoje { background:var(--hoje); outline:2px solid var(--acc); }
-  .dia h2 { margin:0 0 8px; font-size:1.05rem; }
-  ul { list-style:none; margin:0; padding:0; }
-  li { display:flex; gap:10px; padding:6px 0; border-top:1px solid #8882; font-size:.92rem; }
-  li:first-child { border-top:0; }
-  .hora { font-variant-numeric:tabular-nums; color:var(--acc); min-width:44px; font-weight:600; }
-  .quem { color:var(--mut); font-size:.8rem; display:block; }
-  .erro { grid-column:1/-1; background:#fee2e2; color:#991b1b; padding:12px; border-radius:8px; }
+  .barra { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between;
+           gap: 10px; padding: 8px 12px; margin: -16px -16px 12px; background: #2f6f6aee; color: #fff;
+           font: 600 14px "Segoe UI", Arial, sans-serif; backdrop-filter: blur(4px); }
+  .barra button { background: #fff; color: #2f6f6a; border: 0; border-radius: 20px; padding: 7px 16px;
+                  font: 700 14px inherit; cursor: pointer; }
+  .barra button:disabled { opacity: .6; cursor: wait; }
+  .barra .st { font-weight: 400; font-size: 12px; opacity: .9; }
+  .erro { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px; font-family: Arial, sans-serif; }
+  @media print { .barra { display: none; } }
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1 id="titulo">Rotina Familiar</h1>
-    <div class="status" id="status">Carregando…</div>
-  </div>
-  <button id="atualizar" type="button">Atualizar</button>
-</header>
-<main id="lista"></main>
+<div class="barra">
+  <span>🏡 Rotina Familiar <span class="st" id="st"></span></span>
+  <button id="btn" type="button">Atualizar</button>
+</div>
+<div id="conteudo">Carregando…</div>
 
 <script>
-// Repositório de onde o conteúdo é lido
+// Fonte do conteúdo: o arquivo rotina.html neste repositório do GitHub
 const REPO = "ATOSMOREIRA/rotina-familiar";
-const ARQUIVO = "rotina.json";
-
-const DIAS = [
-  ["segunda", "Segunda-feira"], ["terca", "Terça-feira"], ["quarta", "Quarta-feira"],
-  ["quinta", "Quinta-feira"], ["sexta", "Sexta-feira"], ["sabado", "Sábado"], ["domingo", "Domingo"]
-];
-const CHAVE_HOJE = ["domingo","segunda","terca","quarta","quinta","sexta","sabado"][new Date().getDay()];
-
-const $ = id => document.getElementById(id);
+const ARQUIVO = "rotina.html";
 
 async function buscar() {
-  // 1) API do GitHub: sempre o conteúdo mais recente da branch padrão
+  // 1) API do GitHub: sempre a versão mais recente da branch padrão
   try {
     const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${ARQUIVO}`, {
-      headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store"
-    });
-    if (r.ok) return await r.json();
+      headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store" });
+    if (r.ok) return await r.text();
   } catch (_) {}
-  // 2) Fallback: arquivo ao lado da página (GitHub Pages), sem cache
+  // 2) Alternativa: arquivo ao lado desta página (GitHub Pages), sem cache
   const r2 = await fetch(`${ARQUIVO}?t=${Date.now()}`, { cache: "no-store" });
   if (!r2.ok) throw new Error("Não foi possível carregar " + ARQUIVO);
-  return await r2.json();
-}
-
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-
-function render(d) {
-  $("titulo").textContent = d.titulo || "Rotina Familiar";
-  $("lista").innerHTML = DIAS.map(([k, nome]) => {
-    const itens = (d.dias?.[k] || []).slice().sort((a, b) => a.hora.localeCompare(b.hora));
-    return `<section class="dia ${k === CHAVE_HOJE ? "hoje" : ""}">
-      <h2>${nome}${k === CHAVE_HOJE ? " · hoje" : ""}</h2>
-      <ul>${itens.map(i => `<li><span class="hora">${esc(i.hora)}</span>
-        <span>${esc(i.tarefa)}<span class="quem">${esc(i.quem)}</span></span></li>`).join("")
-        || '<li class="quem">Sem atividades</li>'}</ul></section>`;
-  }).join("");
+  return await r2.text();
 }
 
 async function atualizar() {
-  const btn = $("atualizar");
-  btn.disabled = true; $("status").textContent = "Atualizando…";
+  const btn = document.getElementById("btn"), st = document.getElementById("st");
+  btn.disabled = true; st.textContent = "· atualizando…";
   try {
-    render(await buscar());
-    $("status").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR");
+    const doc = new DOMParser().parseFromString(await buscar(), "text/html");
+    document.getElementById("tema").textContent =
+      [...doc.querySelectorAll("style")].map(s => s.textContent).join("\n");
+    document.getElementById("conteudo").innerHTML = doc.body.innerHTML;
+    st.textContent = "· atualizado às " + new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
   } catch (e) {
-    $("lista").innerHTML = `<div class="erro">${esc(e.message)}</div>`;
-    $("status").textContent = "Falha ao atualizar";
+    document.getElementById("conteudo").innerHTML = `<div class="erro">${e.message}</div>`;
+    st.textContent = "· falha ao atualizar";
   } finally { btn.disabled = false; }
 }
 
-$("atualizar").addEventListener("click", atualizar);
+document.getElementById("btn").addEventListener("click", atualizar);
 atualizar();
 </script>
 </body>
