@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f6b64">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rotina">
 <title>Rotina Familiar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,6 +55,23 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .nav input { color:var(--ink); font-family:inherit; min-width:0; }
 .nav button:hover, .seg button:hover { filter:brightness(.97); }
 button:focus-visible, input:focus-visible, .dia-card:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+/* Celular: controles fixos embaixo, ao alcance do polegar */
+@media (max-width:700px) {
+  .wrap { padding-bottom:96px; }
+  .controles { position:fixed; top:auto; bottom:0; left:0; right:0; z-index:20; margin:0; padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--card); border-top:1px solid var(--line); box-shadow:0 -6px 20px rgba(40,30,10,.10); backdrop-filter:none;
+    flex-wrap:nowrap; justify-content:space-between; }
+  .seg button { padding:10px 14px; }
+  .nav { gap:6px; }
+  .nav button, .nav input { height:44px; }
+  .nav .seta { width:44px; }
+  .nav input { width:44px; padding:0; font-size:0; color:transparent; position:relative; }
+  .nav input::-webkit-calendar-picker-indicator { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+  .nav input { background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='3'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E") center/22px no-repeat; }
+  .rodape { margin-bottom:8px; }
+  .faixa button { padding:10px 0; }
+}
 
 /* Faixa da semana */
 .faixa { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin:6px 0 16px; }
@@ -380,6 +402,14 @@ document.getElementById("app").addEventListener("click", e => {
 document.getElementById("app").addEventListener("keydown", e => {
   if ((e.key === "Enter" || e.key === " ") && e.target.matches(".dia-card")) { e.preventDefault(); e.target.click(); }
 });
+/* deslizar o dedo: esquerda = próximo, direita = anterior */
+let toque = null;
+const appEl = document.getElementById("app");
+appEl.addEventListener("touchstart", e => { const t = e.touches[0]; toque = { x:t.clientX, y:t.clientY }; }, { passive:true });
+appEl.addEventListener("touchend", e => {
+  if (!toque) return; const t = e.changedTouches[0], dx = t.clientX - toque.x, dy = t.clientY - toque.y; toque = null;
+  if (Math.abs(dx) > 70 && Math.abs(dy) < 45) passo(dx < 0 ? 1 : -1);
+}, { passive:true });
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && Date.now() - ultimaCarga > 5 * 60 * 1000) atualizar();
 });
