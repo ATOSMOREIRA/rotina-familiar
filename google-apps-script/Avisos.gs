@@ -38,9 +38,23 @@ function diaSemana_(ymd) { return new Date(diaNum_(ymd) * 864e5).getUTCDay(); }
 function hhmm_(s) { const p = s.split(":"); return Number(p[0]) * 60 + Number(p[1]); }
 function marcavel_(i) { return i.marcar != null ? i.marcar : (i.tipo === "casa" || i.tipo === "pet"); }
 
+// Dados compartilhados da planilha (aba "Dados"): tarefas extras, eventos e tarefas adiadas
+function extrasDe_(lista) {
+  const e = { item: {}, evento: {}, adiada: {} };
+  lista.forEach(function (x) { if (e[x.tipo]) e[x.tipo][x.id] = x.valor; });
+  return e;
+}
+
+function ocorre_(i, ymd) {
+  if (i.mensal) return diaSemana_(ymd) === i.mensal.dia && Math.ceil(Number(ymd.slice(8)) / 7) === i.mensal.semana;
+  return (i.dias || []).indexOf(diaSemana_(ymd)) >= 0;
+}
+
 function itensDoDia_(dados, ymd) {
   const dow = diaSemana_(ymd), n = diaNum_(ymd);
-  const lista = dados.itens.filter(function (i) { return i.dias.indexOf(dow) >= 0; }).map(function (i) { return Object.assign({}, i); });
+  const ex = dados._extras || { item: {}, evento: {}, adiada: {} };
+  const base = dados.itens.concat(Object.keys(ex.item).map(function (id) { return ex.item[id]; }));
+  const lista = base.filter(function (i) { return ocorre_(i, ymd); }).map(function (i) { return Object.assign({}, i); });
   const q = dados.quinzenal;
   if (q && dow === 6) {
     const dd = n - diaNum_(q.ancora);
@@ -49,6 +63,16 @@ function itensDoDia_(dados, ymd) {
       lista.push({ periodo: "tarde", icone: "🧽", tipo: "casa", titulo: mensal ? "Tarefas quinzenais e mensais" : "Tarefas quinzenais" });
     }
   }
+  Object.keys(ex.evento).forEach(function (id) {
+    const e = ex.evento[id];
+    if (e.data !== ymd) return;
+    lista.push({ icone: "📌", titulo: e.titulo, detalhe: e.detalhe, tipo: "rotina", marcar: false, hora: e.hora || undefined, periodo: e.hora ? undefined : "dia" });
+  });
+  Object.keys(ex.adiada).forEach(function (id) {
+    const a = ex.adiada[id];
+    if (a.para !== ymd) return;
+    lista.push({ periodo: "dia", icone: "↪️", titulo: a.nome + " (adiada)", tipo: "casa", marcar: true });
+  });
   lista.forEach(function (i) { i._chave = i.hora || PERIODO_CHAVE_[i.periodo] || ""; });
   return lista;
 }
@@ -116,7 +140,8 @@ function mensagemSemana_(dados, ymd, feitosSet) {
   let total = 0, ok = 0; const pessoas = {}, falt = {};
   for (let d = seg; d <= n; d++) {
     tarefasDoDia_(dados, ymdDe_(d)).forEach(function (t) {
-      const f = !!feitosSet[t.k]; total++; if (f) ok++;
+      if (feitosSet[t.k] === 2) return;   // dispensada: não conta
+      const f = feitosSet[t.k] === 1; total++; if (f) ok++;
       if (t.pessoa) { if (!pessoas[t.pessoa]) pessoas[t.pessoa] = { ok: 0, total: 0 }; pessoas[t.pessoa].total++; if (f) pessoas[t.pessoa].ok++; }
       if (!f) falt[t.nome] = (falt[t.nome] || 0) + 1;
     });
@@ -148,7 +173,7 @@ function feitosEntre_(ini, fim) {
   const s = aba_(), n = s.getLastRow(), set = {};
   if (n > 1) s.getRange(2, 1, n - 1, 2).getValues().forEach(function (r) {
     const d = String(r[0]).slice(0, 10);
-    if (r[1] === true && d >= ini && d <= fim) set[String(r[0])] = 1;
+    if (d >= ini && d <= fim) { if (r[1] === true) set[String(r[0])] = 1; else if (r[1] === "dispensado") set[String(r[0])] = 2; }
   });
   return set;
 }
@@ -190,6 +215,7 @@ function verificar() {
   const agora = Utilities.formatDate(new Date(), FUSO, "yyyy-MM-dd HH:mm");
   const ymd = agora.slice(0, 10), min = hhmm_(agora.slice(11));
   const dados = carregarRotina_(); if (!dados) return;
+  dados._extras = extrasDe_(lerDados_());
   const props = PropertiesService.getScriptProperties();
   const devido = function (hora, extra) { const m = hhmm_(hora) + (extra || 0); return min >= m && min - m <= 20; };
   const jaFoi = function (id) { return props.getProperty("env|" + ymd + "|" + id) === "1"; };
