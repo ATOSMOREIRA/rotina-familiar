@@ -12,7 +12,7 @@
     }
   },
   "planilha": "https://script.google.com/macros/s/AKfycbyZVIwft2R-SFYk1lyHgfOLVpQY86FqsEks0q3eCk2goQwb0rBrPOfdB9v-uqXP2FaQXw/exec",
-  "_ajuda": "dias: 0=domingo, 1=segunda ... 6=sábado. Use 'hora' (HH:MM) ou 'periodo' (manha, tarde, noite, dia). tipo: rotina, casa, pet, tela. Itens 'casa' e 'pet' têm caixinha de marcar; nos demais use \ Para repetir uma vez por mês use \"dias\": [] e \"mensal\": {\"semana\": 1, \"dia\": 0} (1º domingo do mês)."marcar\": true.",
+  "_ajuda": "dias: 0=domingo, 1=segunda ... 6=sábado. Use 'hora' (HH:MM) ou 'periodo' (manha, tarde, noite, dia). tipo: rotina, casa, pet, tela. Itens 'casa' e 'pet' têm caixinha de marcar; nos demais use marcar: true. Para repetir uma vez por mês use dias: [] e mensal: {semana: 1, dia: 0} (1º domingo do mês).",
   "rodizio": {
     "inicio": "2026-11-16",
     "pessoas": ["Luana", "Atos", "Lara Sthefany"],
