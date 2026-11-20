@@ -234,7 +234,13 @@ dialog#folha::backdrop { background:rgba(0,0,0,.45); }
 .btn.sec { background:var(--card2); color:var(--ink); border:1px solid var(--line); }
 .ajuda { color:var(--mut); font-size:13px; margin:0 0 10px; }
 
-.form { display:grid; gap:8px; margin-bottom:10px; }
+.form { display:grid; grid-template-columns:minmax(0, 1fr); gap:10px; margin-bottom:10px; }
+.form > *, .par > * { min-width:0; }
+.par { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:8px; }
+.campo { display:grid; gap:4px; font-size:12px; font-weight:600; color:var(--mut); min-width:0; }
+/* iPhone: campos de data e hora têm largura própria e passam do cartão se não forem contidos */
+.form input[type=date], .form input[type=time], .form select { -webkit-appearance:none; appearance:none; display:block; min-width:0; max-width:100%; min-height:44px; text-align:left; }
+.form input[type=date]::-webkit-date-and-time-value, .form input[type=time]::-webkit-date-and-time-value { text-align:left; min-height:1.2em; }
 .form input[type=text], .form input[type=date], .form input[type=time], .form select, .cardapio-linha input {
   font:inherit; width:100%; padding:10px 12px; border:1px solid var(--line); background:var(--card2); color:var(--ink); border-radius:12px; }
 .chipbox-row { display:flex; flex-wrap:wrap; gap:6px; }

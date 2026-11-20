@@ -451,8 +451,10 @@ function renderMais() {
 
     <section class="card"><h2>📅 Eventos</h2>
       <form data-form="evento" class="form">
-        <input type="date" name="data" required value="${iso(estado.data)}" aria-label="Data">
-        <input type="time" name="hora" aria-label="Hora (opcional)">
+        <div class="par">
+          <label class="campo">Data<input type="date" name="data" required value="${iso(estado.data)}"></label>
+          <label class="campo">Hora (opcional)<input type="time" name="hora"></label>
+        </div>
         <input type="text" name="titulo" placeholder="Ex.: Reunião de pais, consulta, aniversário" required maxlength="80">
         <input type="text" name="detalhe" placeholder="Detalhe (opcional)" maxlength="120">
         <button class="btn">Adicionar evento</button>
@@ -465,9 +467,9 @@ function renderMais() {
       <p class="ajuda">Entram na rotina e nos avisos, sem editar o arquivo no GitHub.</p>
       <form data-form="item" class="form">
         <input type="text" name="titulo" placeholder="Ex.: Regar as plantas" required maxlength="80">
-        <input type="time" name="hora" aria-label="Hora (opcional)">
-        <div class="chipbox-row">${diasChips}</div>
-        <select name="tipo" aria-label="Tipo"><option value="casa">Casa</option><option value="rotina">Rotina</option><option value="pet">Pet</option></select>
+        <label class="campo">Hora (opcional)<input type="time" name="hora"></label>
+        <div class="campo">Dias da semana<div class="chipbox-row">${diasChips}</div></div>
+        <label class="campo">Tipo<select name="tipo"><option value="casa">Casa</option><option value="rotina">Rotina</option><option value="pet">Pet</option></select></label>
         <label class="mk"><input type="checkbox" name="marcar" checked><span>Pode marcar como feita</span></label>
         <input type="text" name="detalhe" placeholder="Detalhe (opcional)" maxlength="120">
         <button class="btn">Adicionar tarefa</button>
