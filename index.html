@@ -100,7 +100,7 @@ button:focus-visible, input:focus-visible, .dia-card:focus-visible { outline:2px
 .grupo { margin-top:16px; }
 .grupo > h3 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--mut); font-weight:700; }
 .lista { list-style:none; margin:0; padding:0; position:relative; }
-.item { position:relative; display:grid; grid-template-columns:54px 1fr; gap:10px; padding:9px 0 9px 0; }
+.item { position:relative; display:grid; grid-template-columns:54px 1fr 32px; gap:10px; padding:9px 0 9px 0; }
 .item + .item { border-top:1px dashed var(--line); }
 .hora { font:600 13px var(--sans); color:var(--c); padding-top:2px; font-variant-numeric:tabular-nums; }
 .corpo { border-left:3px solid var(--c); padding-left:12px; }
@@ -111,6 +111,17 @@ button:focus-visible, input:focus-visible, .dia-card:focus-visible { outline:2px
 .corpo li { margin:2px 0; }
 .item.rotina { --c:var(--rotina); } .item.casa { --c:var(--casa); } .item.pet { --c:var(--pet); } .item.tela { --c:var(--tela); }
 .item.passou { opacity:.5; }
+input[type=checkbox] { width:22px; height:22px; margin:0; accent-color:var(--accent); cursor:pointer; flex:none; }
+label.chk { display:flex; align-items:flex-start; justify-content:center; width:40px; height:40px; margin:-8px -8px -8px 0; padding-top:9px; }
+.mk { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
+.mk > input { margin-top:1px; }
+.feito .corpo b, .feito .corpo small, .feito .mk b, .feito .mk small { text-decoration:line-through; text-decoration-thickness:1px; }
+.feito { opacity:.55; }
+.prog { margin:10px 0 2px; font-size:13px; color:var(--mut); }
+.prog div { height:6px; border-radius:6px; background:var(--accent-soft); margin-top:5px; overflow:hidden; }
+.prog i { display:block; height:100%; width:0; background:var(--accent); border-radius:6px; transition:width .25s; }
+.mini.feito span::before { content:"✓ "; color:var(--accent); font-weight:700; }
+.mini.feito span { text-decoration:line-through; }
 .item.proximo .corpo { background:var(--accent-soft); border-radius:0 12px 12px 0; padding:8px 12px; margin:-4px 0; }
 .item.proximo .hora::after { content:"próximo"; display:block; font-size:10px; text-transform:uppercase; letter-spacing:.06em; margin-top:2px; }
 .vazio { color:var(--mut); padding:10px 0; }
@@ -122,7 +133,7 @@ button:focus-visible, input:focus-visible, .dia-card:focus-visible { outline:2px
   display:grid; place-items:center; font:700 15px var(--serif); }
 .pessoa b { display:block; }
 .pessoa .z { color:var(--accent); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
-.pessoa ul { margin:4px 0 0; padding-left:18px; color:var(--mut); font-size:13px; }
+.pessoa ul { list-style:none; margin:4px 0 0; padding-left:0; color:var(--mut); font-size:13px; }
 .pessoa li b { display:inline; font-weight:600; color:var(--ink); }
 .fixa { display:flex; gap:10px; padding:8px 0; border-top:1px dashed var(--line); }
 .fixa small { display:block; color:var(--mut); font-size:13px; }
@@ -227,6 +238,28 @@ function gravarHash() {
   history.replaceState(null, "", `#v=${estado.v}&d=${iso(estado.data)}`);
 }
 
+/* ---------- tarefas marcadas (salvas neste aparelho) ---------- */
+const CHAVE_FEITOS = "rotina-feitos";
+let feitos = {};
+try { feitos = JSON.parse(localStorage.getItem(CHAVE_FEITOS) || "{}"); } catch (_) {}
+(function limpar() {
+  const corte = iso(soma(hojeData(), -60));
+  Object.keys(feitos).forEach(k => { if (k.slice(0, 10) < corte) delete feitos[k]; });
+})();
+const gravarFeitos = () => { try { localStorage.setItem(CHAVE_FEITOS, JSON.stringify(feitos)); } catch (_) {} };
+const marcavel = i => i.marcar ?? (i.tipo === "casa" || i.tipo === "pet");
+const kItem = (d, i) => `${iso(d)}|i|${i.titulo}|${i._chave}`;
+const kExtra = (d, tipo, nome) => `${iso(d)}|${tipo}|${nome}`;
+const caixa = k => `<input type="checkbox" data-chk="${esc(k)}" ${feitos[k] ? "checked" : ""}>`;
+
+function atualizaProgresso() {
+  const el = document.getElementById("prog"); if (!el) return;
+  const todas = document.querySelectorAll("#app input[data-chk]"), ok = [...todas].filter(c => c.checked).length;
+  el.querySelector("span").textContent = todas.length ? `${ok} de ${todas.length} tarefas feitas` : "";
+  el.querySelector("i").style.width = todas.length ? `${100 * ok / todas.length}%` : "0";
+  el.hidden = !todas.length;
+}
+
 /* ---------- dados ---------- */
 async function buscar() {
   try {
@@ -273,16 +306,16 @@ function zonasDaSemana(d) {
 }
 
 /* ---------- visão do dia ---------- */
-function itemHtml(i, agora, ehHoje, proximoRef) {
+function itemHtml(i, d, agora, ehHoje, proximoRef) {
   const passou = ehHoje && i.hora && i.hora < agora;
   const eh = i === proximoRef;
   const rot = i.hora || PERIODO_ROTULO[i.periodo] || "";
-  return `<li class="item ${esc(i.tipo)} ${passou ? "passou" : ""} ${eh ? "proximo" : ""}">
+  return `<li class="item ${esc(i.tipo)} ${passou ? "passou" : ""} ${eh ? "proximo" : ""} ${marcavel(i) && feitos[kItem(d, i)] ? "feito" : ""}">
     <div class="hora">${esc(rot)}</div>
     <div class="corpo"><b><span class="ic">${esc(i.icone)}</span>${esc(i.titulo)}</b>
       ${i.detalhe ? `<small>${esc(i.detalhe)}</small>` : ""}
       ${i.subitens ? `<ul>${i.subitens.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
-    </div></li>`;
+    </div>${marcavel(i) ? `<label class="chk" aria-label="Marcar como feito">${caixa(kItem(d, i))}</label>` : "<span></span>"}</li>`;
 }
 
 function faixaSemana(d) {
@@ -307,10 +340,10 @@ function cardCasa(d) {
   return `<section class="card"><h2>🏡 Casa hoje</h2>
     ${zs.map(p => `<div class="pessoa"><div class="avatar">${esc(p.nome.split(" ").map(w => w[0]).join("").slice(0,2))}</div><div>
       <b>${esc(p.nome)}</b><span class="z">${esc(p.zona.nome)}</span>
-      <ul>${p.zona.areas.map(a => `<li><b>${esc(a.nome)}</b>${a.detalhe ? " · " + esc(a.detalhe) : ""}</li>`).join("")}</ul>
+      <ul>${p.zona.areas.map(a => { const k = kExtra(d, "area", a.nome); return `<li class="${feitos[k] ? "feito" : ""}"><label class="mk">${caixa(k)}<span><b>${esc(a.nome)}</b>${a.detalhe ? " · " + esc(a.detalhe) : ""}</span></label></li>`; }).join("")}</ul>
     </div></div>`).join("")}
-    ${dados.fixas.map(f => `<div class="fixa"><span>${esc(f.icone)}</span><div><b>${esc(f.titulo)}</b>
-      <small>${esc(f.detalhe)} · ${esc(f.quem)}</small></div></div>`).join("")}
+    ${dados.fixas.map(f => { const k = kExtra(d, "fixa", f.titulo); return `<div class="fixa ${feitos[k] ? "feito" : ""}"><label class="mk">${caixa(k)}<span>${esc(f.icone)}</span><div><b>${esc(f.titulo)}</b>
+      <small>${esc(f.detalhe)} · ${esc(f.quem)}</small></div></label></div>`; }).join("")}
   </section>`;
 }
 
@@ -335,8 +368,9 @@ function renderDia() {
     <section class="card">
       <div class="dia-cab"><div><h2>${NOMES[d.getDay()]}${d.getDay() > 0 && d.getDay() < 6 ? "-feira" : ""}</h2>
         <div class="data">${longa(d)} de ${d.getFullYear()}</div></div>${seloRelativo(d)}</div>
+      <div class="prog" id="prog"><span></span><div><i></i></div></div>
       ${grupos.length ? grupos.map(x => `<div class="grupo"><h3>${GRUPOS[x.g]}</h3>
-        <ul class="lista">${x.itens.map(i => itemHtml(i, agora, ehHoje, proximo)).join("")}</ul></div>`).join("")
+        <ul class="lista">${x.itens.map(i => itemHtml(i, d, agora, ehHoje, proximo)).join("")}</ul></div>`).join("")
         : `<div class="vazio">Nada programado para este dia.</div>`}
     </section>
     <div class="coluna">${cardCasa(d)}${cardMetas()}${cardCombinados()}</div>
@@ -352,7 +386,7 @@ function renderSemana() {
     const x = soma(seg, n), itens = itensDoDia(x);
     return `<div role="button" tabindex="0" class="dia-card ${iso(x) === hj ? "hoje" : ""}" data-go="${iso(x)}" data-abrir="1">
       <header><h3>${NOMES[x.getDay()]}</h3><span>${curta(x)}</span></header>
-      ${itens.map(i => `<div class="mini ${esc(i.tipo)}"><i>${esc(i.hora || PERIODO_ROTULO[i.periodo])}</i><span>${esc(i.icone)} ${esc(i.titulo)}</span></div>`).join("")}
+      ${itens.map(i => `<div class="mini ${esc(i.tipo)} ${marcavel(i) && feitos[kItem(x, i)] ? "feito" : ""}"><i>${esc(i.hora || PERIODO_ROTULO[i.periodo])}</i><span>${esc(i.icone)} ${esc(i.titulo)}</span></div>`).join("")}
     </div>`;
   }).join("");
   return `<div class="sem-cab"><h2>Semana de ${curta(seg)} a ${curta(fim)}</h2>
@@ -370,6 +404,7 @@ function desenhar() {
   document.getElementById("seletor").value = iso(estado.data);
   document.getElementById("app").innerHTML = estado.v === "dia" ? renderDia() : renderSemana();
   gravarHash();
+  atualizaProgresso();
 }
 
 function mudar(novo) { Object.assign(estado, novo); if (dados) desenhar(); }
@@ -394,6 +429,13 @@ document.getElementById("prox").addEventListener("click", () => passo(1));
 document.getElementById("hoje").addEventListener("click", () => mudar({ data: hojeData() }));
 document.getElementById("seletor").addEventListener("change", e => { if (e.target.value) mudar({ data: parse(e.target.value) }); });
 document.querySelector(".seg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) mudar({ v: b.dataset.v }); });
+document.getElementById("app").addEventListener("change", e => {
+  const c = e.target.closest("input[data-chk]"); if (!c) return;
+  if (c.checked) feitos[c.dataset.chk] = 1; else delete feitos[c.dataset.chk];
+  gravarFeitos();
+  const linha = c.closest(".item, li, .fixa"); if (linha) linha.classList.toggle("feito", c.checked);
+  atualizaProgresso();
+});
 document.getElementById("app").addEventListener("click", e => {
   const b = e.target.closest("[data-go]"); if (!b) return;
   mudar({ data: parse(b.dataset.go), v: b.dataset.abrir ? "dia" : estado.v });

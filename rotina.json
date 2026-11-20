@@ -2,7 +2,7 @@
   "titulo": "Rotina Familiar",
   "subtitulo": "Luana, Atos, Lara Sthefany, Ana Laura e Amora · Araguaína-TO",
 
-  "_ajuda": "dias: 0=domingo, 1=segunda ... 6=sábado. Use 'hora' (HH:MM) ou 'periodo' (manha, tarde, noite, dia). tipo: rotina, casa, pet, tela.",
+  "_ajuda": "dias: 0=domingo, 1=segunda ... 6=sábado. Use 'hora' (HH:MM) ou 'periodo' (manha, tarde, noite, dia). tipo: rotina, casa, pet, tela. Itens 'casa' e 'pet' têm caixinha de marcar; nos demais use \"marcar\": true.",
 
   "rodizio": {
     "inicio": "2026-11-16",
@@ -43,8 +43,8 @@
     { "hora": "07:00", "icone": "🚪", "titulo": "Todos saem para seus compromissos", "dias": [1,2,3,4,5], "tipo": "rotina" },
 
     { "hora": "18:30", "icone": "🏠", "titulo": "Chegada em casa", "detalhe": "Luana busca a Lara Sthefany; Atos chega com a Ana Laura", "dias": [1,2,3,4,5], "tipo": "rotina" },
-    { "hora": "19:15", "icone": "🛁", "titulo": "Banho da Ana Laura", "dias": [0,1,2,3,4,5,6], "tipo": "rotina" },
-    { "hora": "19:45", "icone": "🍲", "titulo": "Jantar em família", "detalhe": "Sem celular durante a refeição", "dias": [0,1,2,3,4,5,6], "tipo": "rotina" },
+    { "hora": "19:15", "icone": "🛁", "titulo": "Banho da Ana Laura", "marcar": true, "dias": [0,1,2,3,4,5,6], "tipo": "rotina" },
+    { "hora": "19:45", "icone": "🍲", "titulo": "Jantar em família", "marcar": true, "detalhe": "Sem celular durante a refeição", "dias": [0,1,2,3,4,5,6], "tipo": "rotina" },
     { "hora": "21:45", "icone": "📵", "titulo": "Telas desligadas para todos", "dias": [0,1,2,3,4,5,6], "tipo": "tela" },
     { "hora": "22:00", "icone": "🌙", "titulo": "Meta de estar dormindo", "detalhe": "Adultos", "dias": [0,1,2,3,4,5,6], "tipo": "rotina" },
 
@@ -59,7 +59,7 @@
     { "periodo": "manha", "icone": "🧹", "titulo": "Tarefas semanais da casa", "detalhe": "Sábado de manhã",
       "subitens": ["Passar pano em todos os cômodos", "Limpar o box do banheiro (evita mofo)", "Trocar as toalhas de banho", "Aspirar ou bater sofá e tapetes", "Organizar gavetas, mesa da cozinha e criado-mudo", "Quarto da Lara Sthefany: roupas e superfícies", "Quarto da Ana Laura: organização completa dos brinquedos"],
       "dias": [6], "tipo": "casa" },
-    { "periodo": "dia", "icone": "🍱", "titulo": "Preparar refeições com antecedência", "detalhe": "No sábado ou no domingo", "dias": [0,6], "tipo": "rotina" },
+    { "periodo": "dia", "icone": "🍱", "titulo": "Preparar refeições com antecedência", "marcar": true, "detalhe": "No sábado ou no domingo", "dias": [0,6], "tipo": "rotina" },
     { "periodo": "dia", "icone": "💚", "titulo": "Domingo livre", "detalhe": "Família, visitas e cuidados pessoais", "dias": [0], "tipo": "rotina" }
   ],
 
