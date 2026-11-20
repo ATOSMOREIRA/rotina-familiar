@@ -58,11 +58,13 @@ button:focus-visible, input:focus-visible, .dia-card:focus-visible { outline:2px
 
 /* Celular: controles fixos embaixo, ao alcance do polegar */
 @media (max-width:700px) {
-  .wrap { padding-bottom:96px; }
+  .wrap { padding-bottom:140px; }
   .controles { position:fixed; top:auto; bottom:0; left:0; right:0; z-index:20; margin:0; padding:10px 12px calc(10px + env(safe-area-inset-bottom));
     background:var(--card); border-top:1px solid var(--line); box-shadow:0 -6px 20px rgba(40,30,10,.10); backdrop-filter:none;
-    flex-wrap:nowrap; justify-content:space-between; }
-  .seg button { padding:10px 14px; }
+    flex-wrap:wrap; justify-content:space-between; row-gap:8px; }
+  .seg { width:100%; } .seg button { flex:1; }
+  .nav { width:100%; } .nav #hoje { flex:1; }
+  .seg button { padding:10px 8px; }
   .nav { gap:6px; }
   .nav button, .nav input { height:44px; }
   .nav .seta { width:44px; }
@@ -72,6 +74,40 @@ button:focus-visible, input:focus-visible, .dia-card:focus-visible { outline:2px
   .rodape { margin-bottom:8px; }
   .faixa button { padding:10px 0; }
 }
+
+/* Resumo (supervisão) */
+.res-topo { display:grid; gap:16px; }
+@media (min-width:900px) { .res-topo { grid-template-columns:1fr 1.4fr; } }
+.nota { text-align:center; }
+.nota .pct { font:700 64px/1 var(--serif); }
+.nota .pct small { font-size:28px; }
+.nota p { margin:6px 0 0; color:var(--mut); }
+.bom { color:var(--accent); } .medio { color:var(--pet); } .ruim { color:var(--casa); }
+.bar { height:8px; border-radius:8px; background:var(--accent-soft); overflow:hidden; }
+.bar i { display:block; height:100%; background:var(--accent); border-radius:8px; }
+.bar.medio i { background:var(--pet); } .bar.ruim i { background:var(--casa); }
+.var { margin-top:10px; font-size:13px; font-weight:600; }
+.linha { display:grid; grid-template-columns:78px 1fr 58px; gap:10px; align-items:center; width:100%; text-align:left;
+  background:transparent; border:0; border-top:1px dashed var(--line); padding:10px 0; }
+.linha:first-of-type { border-top:0; }
+.linha small { color:var(--mut); display:block; font-size:11px; }
+.linha b { font-weight:600; }
+.linha .n { text-align:right; font-variant-numeric:tabular-nums; font-size:13px; color:var(--mut); }
+.linha.futuro { opacity:.45; }
+.res-grid { display:grid; gap:16px; margin-top:16px; }
+@media (min-width:900px) { .res-grid { grid-template-columns:1fr 1fr; align-items:start; } }
+.cartao-p { padding:10px 0; border-top:1px dashed var(--line); }
+.cartao-p:first-of-type { border-top:0; }
+.cartao-p header { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; font-size:14px; }
+.cartao-p header span { color:var(--mut); font-size:12px; }
+details { border-top:1px dashed var(--line); padding:8px 0; }
+details:first-of-type { border-top:0; }
+summary { cursor:pointer; font-weight:600; display:flex; justify-content:space-between; gap:8px; }
+summary span { color:var(--casa); font-weight:600; font-size:13px; }
+details ul { margin:6px 0 2px; padding-left:20px; color:var(--mut); font-size:14px; }
+.tudo-ok { color:var(--accent); font-weight:600; padding:6px 0; }
+.esq { display:flex; justify-content:space-between; padding:7px 0; border-top:1px dashed var(--line); font-size:14px; }
+.esq:first-of-type { border-top:0; } .esq span { color:var(--casa); font-weight:600; }
 
 /* Faixa da semana */
 .faixa { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin:6px 0 16px; }
@@ -190,6 +226,7 @@ label.chk { display:flex; align-items:flex-start; justify-content:center; width:
     <div class="seg" role="group" aria-label="Visão">
       <button type="button" data-v="dia">Dia</button>
       <button type="button" data-v="semana">Semana</button>
+      <button type="button" data-v="resumo">Resumo</button>
     </div>
     <div class="nav">
       <button class="seta" type="button" id="ant" aria-label="Anterior">‹</button>
@@ -231,7 +268,7 @@ let ultimaCarga = 0;
 
 function lerHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  if (p.get("v") === "semana" || p.get("v") === "dia") estado.v = p.get("v");
+  if (["dia","semana","resumo"].includes(p.get("v"))) estado.v = p.get("v");
   if (/^\d{4}-\d{2}-\d{2}$/.test(p.get("d") || "")) estado.data = parse(p.get("d"));
 }
 function gravarHash() {
@@ -432,19 +469,101 @@ function renderSemana() {
     <div class="sem-baixo">${cardMetas()}${cardCombinados()}</div>`;
 }
 
+/* ---------- resumo / supervisão ---------- */
+function tarefasDoDia(d) {
+  const lista = [];
+  itensDoDia(d).filter(marcavel).forEach(i => lista.push({ k:kItem(d, i), nome:i.titulo, cat: i.tipo === "pet" ? "Pets" : i.tipo === "casa" ? "Casa" : "Rotina" }));
+  zonasDaSemana(d).forEach(p => p.zona.areas.forEach(a => lista.push({ k:kExtra(d, "area", a.nome), nome:a.nome, cat:"Zonas", pessoa:p.nome })));
+  dados.fixas.forEach(f => lista.push({ k:kExtra(d, "fixa", f.titulo), nome:f.titulo, cat:"Tarefas fixas" }));
+  return lista.map(t => ({ ...t, feito: !!feitos[t.k] }));
+}
+
+function resumoSemana(seg) {
+  const hj = hojeData(), dias = [];
+  for (let n = 0; n < 7; n++) {
+    const d = soma(seg, n), ts = tarefasDoDia(d), c = dif(d, hj);
+    dias.push({ d, hoje: c === 0, futuro: c > 0, passado: c < 0, ts, feitas: ts.filter(t => t.feito).length });
+  }
+  const contados = dias.filter(x => x.passado);   // o dia de hoje ainda está em andamento
+  const total = contados.reduce((s, x) => s + x.ts.length, 0), feitas = contados.reduce((s, x) => s + x.feitas, 0);
+  return { dias, contados, total, feitas, pct: total ? Math.round(100 * feitas / total) : null };
+}
+
+const nivel = p => p >= 80 ? "bom" : p >= 50 ? "medio" : "ruim";
+const barra = p => `<div class="bar ${nivel(p)}"><i style="width:${p}%"></i></div>`;
+const agrupar = (ts, chave) => { const m = {}; ts.forEach(t => { const k = chave(t); if (k == null) return;
+  (m[k] ||= { feitas:0, total:0 }).total++; if (t.feito) m[k].feitas++; }); return m; };
+
+function renderResumo() {
+  const seg = segunda(estado.data), fim = soma(seg, 6), hj = hojeData();
+  const r = resumoSemana(seg), ant = resumoSemana(soma(seg, -7));
+  const ts = r.contados.flatMap(x => x.ts);
+  const antigo = dif(hj, fim) > 60;
+  const eh = iso(segunda(hj)) === iso(seg) ? "Esta semana" : dif(seg, segunda(hj)) > 0 ? "Semana futura" : "Semana passada";
+
+  let nota;
+  if (r.pct == null) {
+    const h = r.dias.find(x => x.hoje);
+    nota = h ? `<div class="pct">${h.feitas}<small>/${h.ts.length}</small></div><p>tarefas feitas hoje. O resumo da semana começa a contar a partir de amanhã.</p>`
+             : `<div class="pct">—</div><p>${r.dias[0].futuro ? "Semana que ainda não começou." : "Sem dados nesta semana."}</p>`;
+  } else {
+    const dp = ant.pct == null || ant.feitas === 0 ? "" : r.pct - ant.pct;  // semana anterior sem nenhuma marcação não serve de comparação
+    nota = `<div class="pct ${nivel(r.pct)}">${r.pct}<small>%</small></div>
+      <p>${r.feitas} de ${r.total} tarefas feitas${iso(segunda(hj)) === iso(seg) ? " (sem contar hoje)" : ""}</p>
+      ${dp === "" ? "" : `<div class="var ${dp >= 0 ? "bom" : "ruim"}">${dp > 0 ? "▲" : dp < 0 ? "▼" : "="} ${Math.abs(dp)} pontos em relação à semana anterior (${ant.pct}%)</div>`}`;
+  }
+
+  const porDia = r.dias.map(x => {
+    const p = x.ts.length ? Math.round(100 * x.feitas / x.ts.length) : 0;
+    return `<button type="button" class="linha ${x.futuro ? "futuro" : ""}" data-go="${iso(x.d)}" data-abrir="1">
+      <span><b>${CURTOS[x.d.getDay()]}</b><small>${x.hoje ? "hoje" : curta(x.d)}</small></span>
+      ${x.futuro ? '<span class="vazio" style="padding:0">a fazer</span>' : barra(p)}
+      <span class="n">${x.futuro ? x.ts.length : `${x.feitas}/${x.ts.length}`}</span></button>`;
+  }).join("");
+
+  const zs = zonasDaSemana(seg), pp = agrupar(ts, t => t.pessoa);
+  const pessoas = zs.map(p => { const g = pp[p.nome] || { feitas:0, total:0 }, pc = g.total ? Math.round(100 * g.feitas / g.total) : 0;
+    return `<div class="cartao-p"><header><b>${esc(p.nome)} <span>${esc(p.zona.nome)}</span></b><span>${g.feitas}/${g.total}</span></header>${g.total ? barra(pc) : '<span class="vazio">Sem dias para contar</span>'}</div>`; }).join("");
+
+  const cats = agrupar(ts, t => t.cat);
+  const catHtml = Object.keys(cats).map(c => { const g = cats[c], pc = Math.round(100 * g.feitas / g.total);
+    return `<div class="cartao-p"><header><b>${esc(c)}</b><span>${g.feitas}/${g.total} · ${pc}%</span></header>${barra(pc)}</div>`; }).join("");
+
+  const pend = r.contados.map(x => ({ x, falta: x.ts.filter(t => !t.feito) })).filter(o => o.falta.length);
+  const naoFeito = pend.length ? pend.map((o, i) => `<details ${i === pend.length - 1 ? "open" : ""}><summary>${NOMES[o.x.d.getDay()]}, ${curta(o.x.d)} <span>${o.falta.length} não feita${o.falta.length > 1 ? "s" : ""}</span></summary>
+      <ul>${o.falta.map(t => `<li>${esc(t.nome)}${t.pessoa ? ` <small>(${esc(t.pessoa)})</small>` : ""}</li>`).join("")}</ul></details>`).join("")
+    : `<div class="tudo-ok">${r.contados.length ? "🎉 Tudo feito nos dias contados." : "Nenhum dia para contar ainda."}</div>`;
+
+  const cont = {}; ts.filter(t => !t.feito).forEach(t => { cont[t.nome] = (cont[t.nome] || 0) + 1; });
+  const esq = Object.entries(cont).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+  return `<div class="sem-cab"><h2>Resumo · ${curta(seg)} a ${curta(fim)}</h2><span>${eh}</span></div>
+    ${antigo ? '<div class="erro" style="margin-bottom:12px">Esta semana é muito antiga: só as marcações dos últimos 60 dias ficam sincronizadas.</div>' : ""}
+    <div class="res-topo">
+      <section class="card nota">${nota}</section>
+      <section class="card"><h2>📆 Dia a dia</h2>${porDia}</section>
+    </div>
+    <div class="res-grid">
+      <section class="card"><h2>👥 Por pessoa <span class="sub" style="font:400 12px var(--sans);color:var(--mut)">· tarefas da zona de cada um</span></h2>${r.contados.length ? pessoas : '<div class="vazio">Aparece depois do primeiro dia completo.</div>'}</section>
+      <section class="card"><h2>🧩 Por tipo de tarefa</h2>${r.contados.length ? catHtml : '<div class="vazio">Aparece depois do primeiro dia completo.</div>'}</section>
+      <section class="card"><h2>⚠️ O que não foi feito</h2>${naoFeito}</section>
+      <section class="card"><h2>🔁 Mais esquecidas</h2>${esq.length ? esq.map(([n, q]) => `<div class="esq">${esc(n)}<span>${q}x</span></div>`).join("") : '<div class="tudo-ok">Nenhuma tarefa esquecida mais de uma vez.</div>'}</section>
+    </div>`;
+}
+
 /* ---------- desenho geral ---------- */
 function desenhar() {
   document.getElementById("titulo").textContent = dados.titulo;
   document.getElementById("subtitulo").textContent = dados.subtitulo || "";
   document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === estado.v));
   document.getElementById("seletor").value = iso(estado.data);
-  document.getElementById("app").innerHTML = estado.v === "dia" ? renderDia() : renderSemana();
+  document.getElementById("app").innerHTML = ({ dia: renderDia, semana: renderSemana, resumo: renderResumo })[estado.v]();
   gravarHash();
   atualizaProgresso();
 }
 
 function mudar(novo) { Object.assign(estado, novo); if (dados) desenhar(); }
-function passo(sinal) { mudar({ data: soma(estado.data, sinal * (estado.v === "semana" ? 7 : 1)) }); }
+function passo(sinal) { mudar({ data: soma(estado.data, sinal * (estado.v === "dia" ? 1 : 7)) }); }
 
 async function atualizar() {
   const btn = document.getElementById("btnAtualizar"), rot = btn.querySelector("span");
