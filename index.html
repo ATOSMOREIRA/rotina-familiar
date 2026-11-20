@@ -2,68 +2,390 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6b64">
 <title>Rotina Familiar</title>
-<style id="tema"></style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  .barra { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between;
-           gap: 10px; padding: 8px 12px; margin: -16px -16px 12px; background: #2f6f6aee; color: #fff;
-           font: 600 14px "Segoe UI", Arial, sans-serif; backdrop-filter: blur(4px); }
-  .barra button { background: #fff; color: #2f6f6a; border: 0; border-radius: 20px; padding: 7px 16px;
-                  font: 700 14px inherit; cursor: pointer; }
-  .barra button:disabled { opacity: .6; cursor: wait; }
-  .barra .st { font-weight: 400; font-size: 12px; opacity: .9; }
-  .erro { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px; font-family: Arial, sans-serif; }
-  @media print { .barra { display: none; } }
+:root {
+  --bg:#f6f2ea; --card:#ffffff; --card2:#fbf9f4; --ink:#1d2625; --mut:#6a7473; --line:#e6e0d4;
+  --accent:#1f6b64; --accent-soft:#dcece9; --on-accent:#fff;
+  --rotina:#1f6b64; --casa:#c2603a; --pet:#b8860b; --tela:#6d5bd0;
+  --shadow:0 1px 2px rgba(40,30,10,.06), 0 6px 20px rgba(40,30,10,.06);
+  --serif:"Fraunces", Georgia, serif; --sans:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0f1615; --card:#18211f; --card2:#1c2725; --ink:#eaf0ee; --mut:#93a09d; --line:#2a3633;
+    --accent:#5fb8ae; --accent-soft:#1d3532; --on-accent:#0b1a18;
+    --rotina:#5fb8ae; --casa:#e48a64; --pet:#e0b341; --tela:#a99cf2; --shadow:0 1px 2px #0006; }
+}
+* { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 var(--sans); padding-bottom:env(safe-area-inset-bottom); }
+button { font:inherit; color:inherit; cursor:pointer; }
+.wrap { max-width:1120px; margin:0 auto; padding:0 16px 40px; }
+
+/* Cabeçalho */
+.topo { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:22px 0 14px; }
+.topo h1 { font:700 26px/1.1 var(--serif); margin:0; letter-spacing:-.01em; }
+.topo p { margin:4px 0 0; color:var(--mut); font-size:13px; }
+.btn-atualizar { display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:var(--on-accent); border:0;
+  border-radius:999px; padding:9px 16px; font-weight:600; font-size:14px; white-space:nowrap; box-shadow:var(--shadow); }
+.btn-atualizar:disabled { opacity:.6; cursor:wait; }
+.btn-atualizar svg { width:16px; height:16px; }
+.girando svg { animation:gira .8s linear infinite; }
+@keyframes gira { to { transform:rotate(360deg); } }
+
+/* Controles */
+.controles { position:sticky; top:0; z-index:5; background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(8px); padding:8px 0 10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+.seg { display:inline-flex; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:3px; }
+.seg button { border:0; background:transparent; padding:7px 18px; border-radius:999px; font-weight:600; font-size:14px; color:var(--mut); }
+.seg button[aria-pressed="true"] { background:var(--accent); color:var(--on-accent); }
+.nav { display:flex; align-items:center; gap:6px; }
+.nav button, .nav input { border:1px solid var(--line); background:var(--card); border-radius:999px; height:38px; padding:0 14px; font-weight:600; font-size:14px; }
+.nav .seta { width:38px; padding:0; font-size:18px; line-height:1; }
+.nav input { color:var(--ink); font-family:inherit; min-width:0; }
+.nav button:hover, .seg button:hover { filter:brightness(.97); }
+button:focus-visible, input:focus-visible, .dia-card:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+/* Faixa da semana */
+.faixa { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin:6px 0 16px; }
+.faixa button { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:8px 0; text-align:center; line-height:1.15; }
+.faixa small { display:block; color:var(--mut); font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
+.faixa b { font:700 18px var(--serif); }
+.faixa .hoje { border-color:var(--accent); }
+.faixa .hoje b { color:var(--accent); }
+.faixa [aria-current="true"] { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+.faixa [aria-current="true"] small, .faixa [aria-current="true"] b { color:var(--on-accent); }
+
+/* Cartões */
+.card { background:var(--card); border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow); padding:18px; }
+.card h2 { font:700 17px var(--serif); margin:0 0 12px; }
+.grade-dia { display:grid; gap:16px; grid-template-columns:1fr; max-width:760px; margin:0 auto; }
+@media (min-width:900px) { .grade-dia { max-width:none; grid-template-columns:1.35fr 1fr; align-items:start; } .coluna { display:grid; gap:16px; } }
+.coluna { display:grid; gap:16px; }
+
+.dia-cab { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+.dia-cab h2 { font:700 30px/1.05 var(--serif); margin:0; }
+.dia-cab .data { color:var(--mut); font-size:14px; margin-top:2px; }
+.selo { background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:4px 12px; font-size:12px; font-weight:700; }
+.selo.hojeSelo { background:var(--accent); color:var(--on-accent); }
+
+/* Linha do tempo */
+.grupo { margin-top:16px; }
+.grupo > h3 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--mut); font-weight:700; }
+.lista { list-style:none; margin:0; padding:0; position:relative; }
+.item { position:relative; display:grid; grid-template-columns:54px 1fr; gap:10px; padding:9px 0 9px 0; }
+.item + .item { border-top:1px dashed var(--line); }
+.hora { font:600 13px var(--sans); color:var(--c); padding-top:2px; font-variant-numeric:tabular-nums; }
+.corpo { border-left:3px solid var(--c); padding-left:12px; }
+.corpo b { font-weight:600; display:block; }
+.corpo .ic { margin-right:6px; }
+.corpo small { display:block; color:var(--mut); font-size:13px; margin-top:1px; }
+.corpo ul { margin:6px 0 0; padding-left:18px; color:var(--mut); font-size:13px; }
+.corpo li { margin:2px 0; }
+.item.rotina { --c:var(--rotina); } .item.casa { --c:var(--casa); } .item.pet { --c:var(--pet); } .item.tela { --c:var(--tela); }
+.item.passou { opacity:.5; }
+.item.proximo .corpo { background:var(--accent-soft); border-radius:0 12px 12px 0; padding:8px 12px; margin:-4px 0; }
+.item.proximo .hora::after { content:"próximo"; display:block; font-size:10px; text-transform:uppercase; letter-spacing:.06em; margin-top:2px; }
+.vazio { color:var(--mut); padding:10px 0; }
+
+/* Zonas */
+.pessoa { display:flex; gap:12px; padding:10px 0; }
+.pessoa + .pessoa { border-top:1px dashed var(--line); }
+.avatar { flex:none; width:38px; height:38px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+  display:grid; place-items:center; font:700 15px var(--serif); }
+.pessoa b { display:block; }
+.pessoa .z { color:var(--accent); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+.pessoa ul { margin:4px 0 0; padding-left:18px; color:var(--mut); font-size:13px; }
+.pessoa li b { display:inline; font-weight:600; color:var(--ink); }
+.fixa { display:flex; gap:10px; padding:8px 0; border-top:1px dashed var(--line); }
+.fixa small { display:block; color:var(--mut); font-size:13px; }
+.metas { list-style:none; margin:0; padding:0; }
+.metas li { display:flex; gap:10px; padding:8px 0; }
+.metas li + li { border-top:1px dashed var(--line); }
+.metas small { display:block; color:var(--mut); font-size:13px; }
+.chips { display:flex; flex-wrap:wrap; gap:8px; }
+.chip { background:var(--card2); border:1px solid var(--line); border-radius:999px; padding:5px 12px; font-size:13px; }
+
+/* Semana */
+.sem-cab { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.sem-cab h2 { font:700 24px var(--serif); margin:0; }
+.sem-cab span { color:var(--mut); font-size:14px; }
+.zonas-sem { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.zonas-sem .chip b { color:var(--accent); }
+.grade-sem { display:grid; gap:12px; grid-template-columns:1fr; }
+@media (min-width:640px) { .grade-sem { grid-template-columns:repeat(2,1fr); } }
+@media (min-width:1000px) { .grade-sem { grid-template-columns:repeat(4,1fr); } }
+.dia-card { display:flex; flex-direction:column; justify-content:flex-start; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:14px; box-shadow:var(--shadow); text-align:left; width:100%; cursor:pointer; }
+.dia-card.hoje { border:2px solid var(--accent); }
+.dia-card header { width:100%; display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
+.dia-card h3 { margin:0; font:700 17px var(--serif); }
+.dia-card header span { color:var(--mut); font-size:13px; }
+.mini { width:100%; display:grid; grid-template-columns:44px 1fr; gap:6px; font-size:13px; padding:3px 0; }
+.mini i { font-style:normal; color:var(--c); font-weight:600; font-variant-numeric:tabular-nums; font-size:12px; padding-top:1px; }
+.mini.rotina { --c:var(--rotina); } .mini.casa { --c:var(--casa); } .mini.pet { --c:var(--pet); } .mini.tela { --c:var(--tela); }
+.sem-baixo { display:grid; gap:16px; margin-top:16px; }
+@media (min-width:900px) { .sem-baixo { grid-template-columns:1fr 1fr; } }
+
+.rodape { text-align:center; color:var(--mut); font-size:12px; margin-top:24px; }
+.erro { background:#fde8e6; color:#8a1f17; border-radius:14px; padding:14px; }
+
+@media print {
+  .controles, .btn-atualizar, .faixa { display:none; }
+  body { background:#fff; } .card, .dia-card { box-shadow:none; }
+}
 </style>
 </head>
 <body>
-<div class="barra">
-  <span>🏡 Rotina Familiar <span class="st" id="st"></span></span>
-  <button id="btn" type="button">Atualizar</button>
+<div class="wrap">
+  <header class="topo">
+    <div>
+      <h1 id="titulo">Rotina Familiar</h1>
+      <p id="subtitulo"></p>
+    </div>
+    <button class="btn-atualizar" id="btnAtualizar" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      <span>Atualizar</span>
+    </button>
+  </header>
+
+  <div class="controles">
+    <div class="seg" role="group" aria-label="Visão">
+      <button type="button" data-v="dia">Dia</button>
+      <button type="button" data-v="semana">Semana</button>
+    </div>
+    <div class="nav">
+      <button class="seta" type="button" id="ant" aria-label="Anterior">‹</button>
+      <button type="button" id="hoje">Hoje</button>
+      <input type="date" id="seletor" aria-label="Escolher data">
+      <button class="seta" type="button" id="prox" aria-label="Próximo">›</button>
+    </div>
+  </div>
+
+  <main id="app" aria-live="polite">Carregando…</main>
+  <div class="rodape" id="rodape"></div>
 </div>
-<div id="conteudo">Carregando…</div>
 
 <script>
-// Fonte do conteúdo: o arquivo rotina.html neste repositório do GitHub
 const REPO = "ATOSMOREIRA/rotina-familiar";
-const ARQUIVO = "rotina.html";
+const ARQUIVO = "rotina.json";
 
+/* ---------- datas ---------- */
+const DIA_MS = 864e5;
+const NOMES = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+const CURTOS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const pad = n => String(n).padStart(2, "0");
+const mk = (y, m, d) => new Date(y, m, d, 12);
+const hojeData = () => { const n = new Date(); return mk(n.getFullYear(), n.getMonth(), n.getDate()); };
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [a,b,c] = s.split("-").map(Number); return mk(a, b-1, c); };
+const soma = (d, n) => mk(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const dif = (a, b) => Math.round((a - b) / DIA_MS);
+const segunda = d => soma(d, -((d.getDay() + 6) % 7));
+const mod = (a, n) => ((a % n) + n) % n;
+const longa = d => d.toLocaleDateString("pt-BR", { day:"numeric", month:"long" });
+const curta = d => d.toLocaleDateString("pt-BR", { day:"numeric", month:"short" }).replace(".", "");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- estado ---------- */
+let dados = null;
+let estado = { v:"dia", data:hojeData() };
+let ultimaCarga = 0;
+
+function lerHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.get("v") === "semana" || p.get("v") === "dia") estado.v = p.get("v");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(p.get("d") || "")) estado.data = parse(p.get("d"));
+}
+function gravarHash() {
+  history.replaceState(null, "", `#v=${estado.v}&d=${iso(estado.data)}`);
+}
+
+/* ---------- dados ---------- */
 async function buscar() {
-  // 1) API do GitHub: sempre a versão mais recente da branch padrão
   try {
     const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${ARQUIVO}`, {
       headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store" });
-    if (r.ok) return await r.text();
+    if (r.ok) return await r.json();
   } catch (_) {}
-  // 2) Alternativa: arquivo ao lado desta página (GitHub Pages), sem cache
   const r2 = await fetch(`${ARQUIVO}?t=${Date.now()}`, { cache: "no-store" });
-  if (!r2.ok) throw new Error("Não foi possível carregar " + ARQUIVO);
-  return await r2.text();
+  if (!r2.ok) throw new Error("Não foi possível carregar a rotina.");
+  return await r2.json();
 }
+
+/* ---------- regras ---------- */
+const PERIODO_CHAVE = { manha:"08:00", tarde:"14:00", noite:"20:00" };
+const PERIODO_ROTULO = { manha:"Manhã", tarde:"Tarde", noite:"Noite", dia:"Dia" };
+
+function itensDoDia(d) {
+  const lista = dados.itens.filter(i => i.dias.includes(d.getDay())).map(i => ({ ...i }));
+  const q = dados.quinzenal;
+  if (q && d.getDay() === 6) {
+    const dd = dif(d, parse(q.ancora));
+    if (dd % 14 === 0) {
+      const mensal = mod(dd / 14, 2) === 0;
+      lista.push({ periodo:"tarde", icone:"🧽", tipo:"casa",
+        titulo: mensal ? "Tarefas quinzenais e mensais" : "Tarefas quinzenais",
+        detalhe: "Sábado à tarde (domingo fica livre)",
+        subitens: mensal ? q.quinzenais.concat(q.mensais) : q.quinzenais });
+    }
+  }
+  lista.forEach(i => { i._chave = i.hora || PERIODO_CHAVE[i.periodo] || ""; });
+  return lista.sort((a, b) => a._chave.localeCompare(b._chave));
+}
+
+function grupoDe(i) {
+  if (!i.hora && i.periodo === "dia") return 0;
+  const h = parseInt(i._chave, 10);
+  return h < 12 ? 1 : h < 18 ? 2 : 3;
+}
+const GRUPOS = ["Ao longo do dia", "Manhã", "Tarde", "Noite"];
+
+function zonasDaSemana(d) {
+  const r = dados.rodizio, w = Math.floor(dif(segunda(d), parse(r.inicio)) / 7);
+  return r.pessoas.map((nome, idx) => ({ nome, zona: r.zonas[mod(w + idx, r.zonas.length)] }));
+}
+
+/* ---------- visão do dia ---------- */
+function itemHtml(i, agora, ehHoje, proximoRef) {
+  const passou = ehHoje && i.hora && i.hora < agora;
+  const eh = i === proximoRef;
+  const rot = i.hora || PERIODO_ROTULO[i.periodo] || "";
+  return `<li class="item ${esc(i.tipo)} ${passou ? "passou" : ""} ${eh ? "proximo" : ""}">
+    <div class="hora">${esc(rot)}</div>
+    <div class="corpo"><b><span class="ic">${esc(i.icone)}</span>${esc(i.titulo)}</b>
+      ${i.detalhe ? `<small>${esc(i.detalhe)}</small>` : ""}
+      ${i.subitens ? `<ul>${i.subitens.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+    </div></li>`;
+}
+
+function faixaSemana(d) {
+  const seg = segunda(d), hj = iso(hojeData());
+  return `<nav class="faixa" aria-label="Dias da semana">` + [0,1,2,3,4,5,6].map(n => {
+    const x = soma(seg, n);
+    return `<button type="button" data-go="${iso(x)}" ${iso(x) === iso(d) ? 'aria-current="true"' : ""} class="${iso(x) === hj ? "hoje" : ""}">
+      <small>${CURTOS[x.getDay()]}</small><b>${x.getDate()}</b></button>`;
+  }).join("") + `</nav>`;
+}
+
+function seloRelativo(d) {
+  const n = dif(d, hojeData());
+  if (n === 0) return `<span class="selo hojeSelo">Hoje</span>`;
+  if (n === 1) return `<span class="selo">Amanhã</span>`;
+  if (n === -1) return `<span class="selo">Ontem</span>`;
+  return `<span class="selo">${n > 0 ? `em ${n} dias` : `há ${-n} dias`}</span>`;
+}
+
+function cardCasa(d) {
+  const zs = zonasDaSemana(d);
+  return `<section class="card"><h2>🏡 Casa hoje</h2>
+    ${zs.map(p => `<div class="pessoa"><div class="avatar">${esc(p.nome.split(" ").map(w => w[0]).join("").slice(0,2))}</div><div>
+      <b>${esc(p.nome)}</b><span class="z">${esc(p.zona.nome)}</span>
+      <ul>${p.zona.areas.map(a => `<li><b>${esc(a.nome)}</b>${a.detalhe ? " · " + esc(a.detalhe) : ""}</li>`).join("")}</ul>
+    </div></div>`).join("")}
+    ${dados.fixas.map(f => `<div class="fixa"><span>${esc(f.icone)}</span><div><b>${esc(f.titulo)}</b>
+      <small>${esc(f.detalhe)} · ${esc(f.quem)}</small></div></div>`).join("")}
+  </section>`;
+}
+
+function cardMetas() {
+  return `<section class="card"><h2>🎯 Metas da semana</h2><ul class="metas">
+    ${dados.semana.map(m => `<li><span>${esc(m.icone)}</span><div><b>${esc(m.titulo)}</b><small>${esc(m.detalhe)}</small></div></li>`).join("")}
+  </ul></section>`;
+}
+
+function cardCombinados() {
+  return `<section class="card"><h2>🤝 Combinados</h2><div class="chips">
+    ${dados.combinados.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</div></section>`;
+}
+
+function renderDia() {
+  const d = estado.data, ehHoje = iso(d) === iso(hojeData());
+  const n = new Date(), agora = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
+  const itens = itensDoDia(d);
+  const proximo = ehHoje ? itens.find(i => i.hora && i.hora >= agora) : null;
+  const grupos = [0,1,2,3].map(g => ({ g, itens: itens.filter(i => grupoDe(i) === g) })).filter(x => x.itens.length);
+  return faixaSemana(d) + `<div class="grade-dia">
+    <section class="card">
+      <div class="dia-cab"><div><h2>${NOMES[d.getDay()]}${d.getDay() > 0 && d.getDay() < 6 ? "-feira" : ""}</h2>
+        <div class="data">${longa(d)} de ${d.getFullYear()}</div></div>${seloRelativo(d)}</div>
+      ${grupos.length ? grupos.map(x => `<div class="grupo"><h3>${GRUPOS[x.g]}</h3>
+        <ul class="lista">${x.itens.map(i => itemHtml(i, agora, ehHoje, proximo)).join("")}</ul></div>`).join("")
+        : `<div class="vazio">Nada programado para este dia.</div>`}
+    </section>
+    <div class="coluna">${cardCasa(d)}${cardMetas()}${cardCombinados()}</div>
+  </div>`;
+}
+
+/* ---------- visão da semana ---------- */
+function renderSemana() {
+  const seg = segunda(estado.data), hj = iso(hojeData());
+  const fim = soma(seg, 6);
+  const zs = zonasDaSemana(seg);
+  const cards = [0,1,2,3,4,5,6].map(n => {
+    const x = soma(seg, n), itens = itensDoDia(x);
+    return `<div role="button" tabindex="0" class="dia-card ${iso(x) === hj ? "hoje" : ""}" data-go="${iso(x)}" data-abrir="1">
+      <header><h3>${NOMES[x.getDay()]}</h3><span>${curta(x)}</span></header>
+      ${itens.map(i => `<div class="mini ${esc(i.tipo)}"><i>${esc(i.hora || PERIODO_ROTULO[i.periodo])}</i><span>${esc(i.icone)} ${esc(i.titulo)}</span></div>`).join("")}
+    </div>`;
+  }).join("");
+  return `<div class="sem-cab"><h2>Semana de ${curta(seg)} a ${curta(fim)}</h2>
+      <span>${iso(segunda(hojeData())) === iso(seg) ? "Esta semana" : dif(seg, segunda(hojeData())) > 0 ? "Semana futura" : "Semana passada"}</span></div>
+    <div class="zonas-sem">${zs.map(p => `<span class="chip"><b>${esc(p.nome)}</b> · ${esc(p.zona.nome)}: ${esc(p.zona.areas.map(a => a.nome).join(", "))}</span>`).join("")}</div>
+    <div class="grade-sem">${cards}</div>
+    <div class="sem-baixo">${cardMetas()}${cardCombinados()}</div>`;
+}
+
+/* ---------- desenho geral ---------- */
+function desenhar() {
+  document.getElementById("titulo").textContent = dados.titulo;
+  document.getElementById("subtitulo").textContent = dados.subtitulo || "";
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === estado.v));
+  document.getElementById("seletor").value = iso(estado.data);
+  document.getElementById("app").innerHTML = estado.v === "dia" ? renderDia() : renderSemana();
+  gravarHash();
+}
+
+function mudar(novo) { Object.assign(estado, novo); if (dados) desenhar(); }
+function passo(sinal) { mudar({ data: soma(estado.data, sinal * (estado.v === "semana" ? 7 : 1)) }); }
 
 async function atualizar() {
-  const btn = document.getElementById("btn"), st = document.getElementById("st");
-  btn.disabled = true; st.textContent = "· atualizando…";
+  const btn = document.getElementById("btnAtualizar"), rot = btn.querySelector("span");
+  btn.disabled = true; btn.classList.add("girando"); rot.textContent = "Atualizando…";
   try {
-    const doc = new DOMParser().parseFromString(await buscar(), "text/html");
-    document.getElementById("tema").textContent =
-      [...doc.querySelectorAll("style")].map(s => s.textContent).join("\n");
-    const box = document.getElementById("conteudo");
-    box.innerHTML = doc.body.innerHTML;
-    // innerHTML não executa <script>: recria os scripts do conteúdo (ex.: calendário automático)
-    box.querySelectorAll("script").forEach(old => {
-      const novo = document.createElement("script");
-      novo.textContent = old.textContent; old.replaceWith(novo);
-    });
-    st.textContent = "· atualizado às " + new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
+    dados = await buscar(); ultimaCarga = Date.now();
+    desenhar();
+    document.getElementById("rodape").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
   } catch (e) {
-    document.getElementById("conteudo").innerHTML = `<div class="erro">${e.message}</div>`;
-    st.textContent = "· falha ao atualizar";
-  } finally { btn.disabled = false; }
+    document.getElementById("app").innerHTML = `<div class="erro">${esc(e.message)} Tente atualizar de novo.</div>`;
+  } finally { btn.disabled = false; btn.classList.remove("girando"); rot.textContent = "Atualizar"; }
 }
 
-document.getElementById("btn").addEventListener("click", atualizar);
+/* ---------- eventos ---------- */
+document.getElementById("btnAtualizar").addEventListener("click", atualizar);
+document.getElementById("ant").addEventListener("click", () => passo(-1));
+document.getElementById("prox").addEventListener("click", () => passo(1));
+document.getElementById("hoje").addEventListener("click", () => mudar({ data: hojeData() }));
+document.getElementById("seletor").addEventListener("change", e => { if (e.target.value) mudar({ data: parse(e.target.value) }); });
+document.querySelector(".seg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) mudar({ v: b.dataset.v }); });
+document.getElementById("app").addEventListener("click", e => {
+  const b = e.target.closest("[data-go]"); if (!b) return;
+  mudar({ data: parse(b.dataset.go), v: b.dataset.abrir ? "dia" : estado.v });
+  if (b.dataset.abrir) scrollTo({ top: 0, behavior: "smooth" });
+});
+document.getElementById("app").addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches(".dia-card")) { e.preventDefault(); e.target.click(); }
+});
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Date.now() - ultimaCarga > 5 * 60 * 1000) atualizar();
+});
+addEventListener("hashchange", () => { lerHash(); if (dados) desenhar(); });
+
+lerHash();
 atualizar();
 </script>
 </body>

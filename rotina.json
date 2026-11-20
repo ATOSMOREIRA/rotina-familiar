@@ -1,0 +1,74 @@
+{
+  "titulo": "Rotina Familiar",
+  "subtitulo": "Luana, Atos, Lara Sthefany, Ana Laura e Amora · Araguaína-TO",
+
+  "_ajuda": "dias: 0=domingo, 1=segunda ... 6=sábado. Use 'hora' (HH:MM) ou 'periodo' (manha, tarde, noite, dia). tipo: rotina, casa, pet, tela.",
+
+  "rodizio": {
+    "inicio": "2026-11-16",
+    "pessoas": ["Luana", "Atos", "Lara Sthefany"],
+    "zonas": [
+      { "nome": "Zona 1", "areas": [
+        { "nome": "Cozinha", "detalhe": "Lavar louça, limpar fogão e bancada, tirar lixo pequeno" },
+        { "nome": "Área externa" },
+        { "nome": "Quarto do casal", "detalhe": "Recolher roupas do chão, fazer a cama, organizar superfícies" }
+      ]},
+      { "nome": "Zona 2", "areas": [
+        { "nome": "Banheiro 1", "detalhe": "Vaso, pia, box, espelho, chão" },
+        { "nome": "Quarto da Ana Laura", "detalhe": "Recolher roupas do chão, fazer a cama, organizar superfícies" }
+      ]},
+      { "nome": "Zona 3", "areas": [
+        { "nome": "Banheiro 2", "detalhe": "Vaso, pia, box, espelho, chão" },
+        { "nome": "Sala", "detalhe": "Varrer/passar pano, organizar sofá e almofadas" },
+        { "nome": "Quarto da Lara Sthefany", "detalhe": "Recolher roupas do chão, fazer a cama, organizar superfícies" }
+      ]}
+    ]
+  },
+
+  "fixas": [
+    { "icone": "🧸", "titulo": "Brinquedos da Ana Laura", "detalhe": "Recolher e guardar os espalhados", "quem": "Casal/família" },
+    { "icone": "🍽️", "titulo": "Mesa após as refeições", "detalhe": "Limpar mesa e cadeiras", "quem": "Quem estiver em casa" },
+    { "icone": "🐶", "titulo": "Amora", "detalhe": "Trocar a água, servir ração, lavar as vasilhas", "quem": "Casal/família" }
+  ],
+
+  "quinzenal": {
+    "ancora": "2026-10-31",
+    "quinzenais": ["Limpeza pesada da geladeira", "Limpeza pesada do fogão", "Troca completa de roupa de cama", "Manutenção de janelas e portas de vidro"],
+    "mensais": ["Limpar filtros do ar-condicionado", "Organização profunda do guarda-roupa", "Organização profunda de brinquedos", "Revisar validade dos produtos da despensa", "Limpeza profunda de janelas e portas de vidro", "Lavar cortinas (a cada 6 meses)"]
+  },
+
+  "itens": [
+    { "hora": "05:30", "icone": "⏰", "titulo": "Todos acordam", "dias": [1,2,3,4,5], "tipo": "rotina" },
+    { "hora": "05:45", "icone": "☕", "titulo": "Higiene, vestir e café da manhã", "detalhe": "Atenção especial para ajudar a Ana Laura", "dias": [1,2,3,4,5], "tipo": "rotina" },
+    { "hora": "07:00", "icone": "🚪", "titulo": "Todos saem para seus compromissos", "dias": [1,2,3,4,5], "tipo": "rotina" },
+
+    { "hora": "18:30", "icone": "🏠", "titulo": "Chegada em casa", "detalhe": "Luana busca a Lara Sthefany; Atos chega com a Ana Laura", "dias": [1,2,3,4,5], "tipo": "rotina" },
+    { "hora": "19:15", "icone": "🛁", "titulo": "Banho da Ana Laura", "dias": [0,1,2,3,4,5,6], "tipo": "rotina" },
+    { "hora": "19:45", "icone": "🍲", "titulo": "Jantar em família", "detalhe": "Sem celular durante a refeição", "dias": [0,1,2,3,4,5,6], "tipo": "rotina" },
+    { "hora": "21:45", "icone": "📵", "titulo": "Telas desligadas para todos", "dias": [0,1,2,3,4,5,6], "tipo": "tela" },
+    { "hora": "22:00", "icone": "🌙", "titulo": "Meta de estar dormindo", "detalhe": "Adultos", "dias": [0,1,2,3,4,5,6], "tipo": "rotina" },
+
+    { "periodo": "dia", "icone": "🗑️", "titulo": "Coleta de lixo", "detalhe": "O caminhão passa durante o dia", "dias": [2,4,6], "tipo": "casa" },
+    { "periodo": "dia", "icone": "🐾", "titulo": "Cocô da Amora (área externa)", "detalhe": "3x por semana, junto com os dias de lixo", "dias": [2,4,6], "tipo": "pet" },
+    { "periodo": "noite", "icone": "🗑️", "titulo": "Colocar o lixo na rua", "detalhe": "Para a coleta do dia seguinte", "dias": [1,3,5], "tipo": "casa" },
+
+    { "periodo": "dia", "icone": "👕", "titulo": "Lavar os uniformes", "dias": [2,4], "tipo": "casa" },
+    { "periodo": "dia", "icone": "🛏️", "titulo": "Lavar roupas de cama e toalhas", "dias": [3], "tipo": "casa" },
+    { "periodo": "dia", "icone": "🧺", "titulo": "Lavar as roupas do dia a dia", "dias": [0,6], "tipo": "casa" },
+
+    { "periodo": "manha", "icone": "🧹", "titulo": "Tarefas semanais da casa", "detalhe": "Sábado de manhã",
+      "subitens": ["Passar pano em todos os cômodos", "Limpar o box do banheiro (evita mofo)", "Trocar as toalhas de banho", "Aspirar ou bater sofá e tapetes", "Organizar gavetas, mesa da cozinha e criado-mudo", "Quarto da Lara Sthefany: roupas e superfícies", "Quarto da Ana Laura: organização completa dos brinquedos"],
+      "dias": [6], "tipo": "casa" },
+    { "periodo": "dia", "icone": "🍱", "titulo": "Preparar refeições com antecedência", "detalhe": "No sábado ou no domingo", "dias": [0,6], "tipo": "rotina" },
+    { "periodo": "dia", "icone": "💚", "titulo": "Domingo livre", "detalhe": "Família, visitas e cuidados pessoais", "dias": [0], "tipo": "rotina" }
+  ],
+
+  "semana": [
+    { "icone": "🏃", "titulo": "Atividade física do casal", "detalhe": "3x na semana, à noite (juntos ou separados)" },
+    { "icone": "📚", "titulo": "Estudo/revisão da Lara Sthefany", "detalhe": "Nos dias de meio período em casa" },
+    { "icone": "👨‍👩‍👧‍👦", "titulo": "Tempo de qualidade em família e tempo de casal", "detalhe": "Reservar na rotina" },
+    { "icone": "💰", "titulo": "Reunião financeira do casal", "detalhe": "1x por mês (dia a definir)" }
+  ],
+
+  "combinados": ["Sem celular durante as refeições", "Telas desligadas às 21h45 para todos"]
+}
