@@ -156,11 +156,20 @@ function feitosEntre_(ini, fim) {
   return set;
 }
 
+// Envia pelo ntfy. Devolve true se o ntfy aceitou; registra o motivo no log se não aceitou.
 function enviar_(titulo, mensagem, click) {
-  UrlFetchApp.fetch("https://ntfy.sh/", {
-    method: "post", contentType: "application/json", muteHttpExceptions: true,
-    payload: JSON.stringify({ topic: NTFY_TOPICO, title: titulo, message: mensagem, click: click || SITE, priority: 3 })
-  });
+  try {
+    const r = UrlFetchApp.fetch("https://ntfy.sh/", {
+      method: "post", contentType: "application/json", muteHttpExceptions: true,
+      payload: JSON.stringify({ topic: NTFY_TOPICO, title: titulo, message: mensagem, click: click || SITE, priority: 3 })
+    });
+    const cod = r.getResponseCode();
+    if (cod >= 200 && cod < 300) return true;
+    Logger.log("ntfy recusou o aviso (" + cod + "): " + r.getContentText().slice(0, 300));
+  } catch (e) {
+    Logger.log("Falha ao falar com o ntfy: " + e);
+  }
+  return false;
 }
 
 // Roda a cada 5 minutos (ligado por configurarAvisos)
@@ -172,9 +181,11 @@ function verificar() {
   const devido = function (hora, extra) { const m = hhmm_(hora) + (extra || 0); return min >= m && min - m <= 20; };
   const jaFoi = function (id) { return props.getProperty("env|" + ymd + "|" + id) === "1"; };
   const marcar = function (id) { props.setProperty("env|" + ymd + "|" + id, "1"); };
+  // só dá o aviso como enviado se o ntfy aceitou; senão tenta de novo na próxima rodada (dentro da janela)
+  const mandar = function (id, titulo, msg, click) { if (enviar_(titulo, msg, click)) marcar(id); };
 
   avisosDoDia_(dados, ymd).forEach(function (a) {
-    if (devido(a.hora) && !jaFoi(a.id)) { marcar(a.id); enviar_(a.titulo, a.mensagem); }
+    if (devido(a.hora) && !jaFoi(a.id)) mandar(a.id, a.titulo, a.mensagem);
   });
 
   const cfg = dados.avisos || {};
@@ -185,40 +196,35 @@ function verificar() {
   if (atraso !== false && atraso !== null) {
     avisosDoDia_(dados, ymd).forEach(function (a) {
       if (a.marcavel && devido(a.hora, atraso) && !feitosHoje[a.k] && !jaFoi("atraso|" + a.id)) {
-        marcar("atraso|" + a.id);
-        enviar_("⏰ Atrasado: " + a.nome, "Era às " + a.hora + " e ainda não foi marcado como feito.");
+        mandar("atraso|" + a.id, "⏰ Atrasado: " + a.nome, "Era às " + a.hora + " e ainda não foi marcado como feito.");
       }
     });
   }
 
   // 2) prazo das tarefas sem horário (zonas, fixas...)
   if (cfg.prazoTarefasCasa && devido(cfg.prazoTarefasCasa) && !jaFoi("prazo")) {
-    marcar("prazo");
     const m = mensagemPrazo_(dados, ymd, feitosHoje);
-    if (m) enviar_(m.titulo, m.mensagem);
+    if (m) mandar("prazo", m.titulo, m.mensagem); else marcar("prazo");
   }
 
   // 3) lembrete geral do que falta no dia
   if (cfg.lembretePendencias && devido(cfg.lembretePendencias) && !jaFoi("pendencias")) {
-    marcar("pendencias");
     const m = mensagemPendencias_(dados, ymd, feitosHoje);
-    enviar_(m.titulo, m.mensagem);
+    mandar("pendencias", m.titulo, m.mensagem);
   }
 
   // 4) resumo de ontem, logo cedo
   if (cfg.resumoManha && devido(cfg.resumoManha) && !jaFoi("ontem")) {
-    marcar("ontem");
     const y = ymdDe_(diaNum_(ymd) - 1), m = mensagemOntem_(dados, y, feitosEntre_(y, y));
-    if (m) enviar_(m.titulo, m.mensagem, SITE + "#v=dia&d=" + y);
+    if (m) mandar("ontem", m.titulo, m.mensagem, SITE + "#v=dia&d=" + y); else marcar("ontem");
   }
 
   // 5) resultado da semana
   const rs = cfg.resumoSemana;
   if (rs && diaSemana_(ymd) === rs.dia && devido(rs.hora) && !jaFoi("semana")) {
-    marcar("semana");
     const seg = ymdDe_(diaNum_(ymd) - mod_(diaSemana_(ymd) + 6, 7));
     const m = mensagemSemana_(dados, ymd, feitosEntre_(seg, ymd));
-    enviar_(m.titulo, m.mensagem, SITE + "#v=resumo&d=" + ymd);
+    mandar("semana", m.titulo, m.mensagem, SITE + "#v=resumo&d=" + ymd);
   }
 
   // limpa o controle de dias antigos
@@ -226,8 +232,12 @@ function verificar() {
   Object.keys(props.getProperties()).forEach(function (k) { if (k.indexOf("env|") === 0 && k < corte) props.deleteProperty(k); });
 }
 
+// Mostra no "Registro de execução" o que aconteceu. Se der erro aqui, o problema é de envio.
 function testarAviso() {
-  enviar_("🏡 Rotina Familiar", "Teste de aviso: se você leu isto, as notificações estão funcionando.");
+  if (NTFY_TOPICO.indexOf("troque-por") === 0) throw new Error("Troque NTFY_TOPICO no topo do arquivo pelo nome do seu tópico.");
+  const ok = enviar_("🏡 Rotina Familiar", "Teste de aviso: se você leu isto, as notificações estão funcionando.");
+  if (!ok) throw new Error("O ntfy não aceitou o aviso. Veja a linha acima no Registro de execução.");
+  Logger.log("OK: o ntfy aceitou o aviso para o tópico " + NTFY_TOPICO + ". Se não chegou no celular, confira se o nome do tópico no app é idêntico.");
 }
 
 function configurarAvisos() {
