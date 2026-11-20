@@ -1,17 +1,12 @@
 /**
- * Rotina Familiar: avisos no celular pelo ntfy (https://ntfy.sh).
+ * Rotina Familiar: avisos no celular pelo Telegram.
  *
  * COMO INSTALAR (uma vez só)
- * 1. No mesmo projeto do Apps Script (onde está o Code.gs), crie um arquivo novo
- *    (+ ao lado de "Arquivos" > Script) chamado Avisos e cole este conteúdo.
- * 2. Troque NTFY_TOPICO abaixo por um nome longo e secreto, sem espaços
- *    (ex.: rotina-familia-8f3k2x9qv7). Quem souber o nome recebe os avisos.
- * 3. No menu do editor, escolha a função "testarAviso" e clique em Executar.
- *    Autorize quando o Google pedir. Isso envia um aviso de teste.
- * 4. Escolha a função "configurarAvisos" e clique em Executar. Isso liga a
- *    verificação automática a cada 5 minutos.
- * 5. No celular de cada pessoa: instale o app "ntfy" (Android ou iPhone),
- *    toque em "+" e assine o mesmo tópico do passo 2.
+ * 1. No Telegram, fale com @BotFather > /newbot e copie o token do bot para TELEGRAM_BOT_TOKEN.
+ * 2. Crie um grupo da família, adicione o bot e as pessoas e envie /start no grupo.
+ * 3. Rode a função "descobrirChatId" e copie o número do log para TELEGRAM_CHAT_ID.
+ * 4. Rode "testarAviso": a mensagem de teste deve chegar no grupo.
+ * 5. Rode "configurarAvisos": liga a verificação automática a cada 5 minutos.
  *
  * O que é avisado vem do rotina.json:
  *   - itens com "hora": avisados na hora (use "avisar": false para não avisar);
@@ -25,18 +20,8 @@
  *
  * Importante: as chaves das tarefas aqui espelham as do index.html. Se mudar a regra
  * de tarefas lá (zonas, quinzenais...), mude aqui também.
+ * Nunca coloque o token do bot no GitHub: preencha-o só aqui, no Apps Script.
  */
-const NTFY_TOPICO = "troque-por-um-nome-longo-e-secreto";
-// Token da sua conta gratuita do ntfy (começa com tk_). Sem ele, o ntfy limita o envio pelo endereço
-// de rede do Google, que é compartilhado, e recusa os avisos com o erro 429.
-// Como obter: ntfy.sh/app > Sign up > menu Account > Access tokens > Create token.
-const NTFY_TOKEN = "";
-
-// ALTERNATIVA: enviar pelo Telegram (mais confiável a partir do Google). Se os dois campos abaixo
-// estiverem preenchidos, os avisos vão pelo Telegram em vez do ntfy.
-// Como obter: no Telegram, fale com @BotFather > /newbot > copie o token do bot (TELEGRAM_BOT_TOKEN).
-// Crie um grupo da família, adicione o bot e as pessoas, envie /start no grupo, rode a função
-// descobrirChatId aqui no Apps Script e copie o número que aparecer no log (TELEGRAM_CHAT_ID).
 const TELEGRAM_BOT_TOKEN = "";
 const TELEGRAM_CHAT_ID = "";
 const SITE = "https://atosmoreira.github.io/rotina-familiar/";
@@ -170,7 +155,8 @@ function feitosEntre_(ini, fim) {
 
 function htmlEsc_(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
-function enviarTelegram_(titulo, mensagem, click) {
+// Envia pelo Telegram. Devolve true se foi aceito; registra o motivo no log se não foi.
+function enviar_(titulo, mensagem, click) {
   try {
     const texto = "<b>" + htmlEsc_(titulo) + "</b>\n" + htmlEsc_(mensagem) + "\n" + (click || SITE);
     const r = UrlFetchApp.fetch("https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage", {
@@ -199,26 +185,6 @@ function descobrirChatId() {
     : "Nenhuma conversa encontrada. Adicione o bot ao grupo, envie /start nele e rode de novo. Resposta: " + r.getContentText().slice(0, 200));
 }
 
-// Envia pelo Telegram (se configurado) ou pelo ntfy. Devolve true se o ntfy aceitou; registra o motivo no log se não aceitou.
-function enviar_(titulo, mensagem, click) {
-  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) return enviarTelegram_(titulo, mensagem, click);
-  try {
-    const cab = NTFY_TOKEN ? { Authorization: "Bearer " + NTFY_TOKEN } : {};
-    const r = UrlFetchApp.fetch("https://ntfy.sh/", {
-      method: "post", contentType: "application/json", muteHttpExceptions: true, headers: cab,
-      payload: JSON.stringify({ topic: NTFY_TOPICO, title: titulo, message: mensagem, click: click || SITE, priority: 3 })
-    });
-    const cod = r.getResponseCode();
-    if (cod >= 200 && cod < 300) return true;
-    Logger.log("ntfy recusou o aviso (" + cod + "): " + r.getContentText().slice(0, 300) +
-      (cod === 429 ? "  >> Preencha NTFY_TOKEN no topo do arquivo com o token da sua conta do ntfy." : "") +
-      (cod === 401 || cod === 403 ? "  >> O token está errado ou foi apagado." : ""));
-  } catch (e) {
-    Logger.log("Falha ao falar com o ntfy: " + e);
-  }
-  return false;
-}
-
 // Roda a cada 5 minutos (ligado por configurarAvisos)
 function verificar() {
   const agora = Utilities.formatDate(new Date(), FUSO, "yyyy-MM-dd HH:mm");
@@ -228,7 +194,7 @@ function verificar() {
   const devido = function (hora, extra) { const m = hhmm_(hora) + (extra || 0); return min >= m && min - m <= 20; };
   const jaFoi = function (id) { return props.getProperty("env|" + ymd + "|" + id) === "1"; };
   const marcar = function (id) { props.setProperty("env|" + ymd + "|" + id, "1"); };
-  // só dá o aviso como enviado se o ntfy aceitou; senão tenta de novo na próxima rodada (dentro da janela)
+  // só dá o aviso como enviado se foi aceito; senão tenta de novo na próxima rodada (dentro da janela)
   const mandar = function (id, titulo, msg, click) { if (enviar_(titulo, msg, click)) marcar(id); };
 
   avisosDoDia_(dados, ymd).forEach(function (a) {
@@ -281,11 +247,10 @@ function verificar() {
 
 // Mostra no "Registro de execução" o que aconteceu. Se der erro aqui, o problema é de envio.
 function testarAviso() {
-  const usaTelegram = TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID;
-  if (!usaTelegram && NTFY_TOPICO.indexOf("troque-por") === 0) throw new Error("Troque NTFY_TOPICO no topo do arquivo pelo nome do seu tópico.");
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) throw new Error("Preencha TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID no topo do arquivo.");
   const ok = enviar_("🏡 Rotina Familiar", "Teste de aviso: se você leu isto, as notificações estão funcionando.");
-  if (!ok) throw new Error("O aviso não foi aceito. Veja a linha acima no Registro de execução.");
-  Logger.log(usaTelegram ? "OK: o Telegram aceitou o aviso." : "OK: o ntfy aceitou o aviso para o tópico " + NTFY_TOPICO + ". Se não chegou no celular, confira se o nome do tópico no app é idêntico.");
+  if (!ok) throw new Error("O Telegram não aceitou o aviso. Veja a linha acima no Registro de execução.");
+  Logger.log("OK: o Telegram aceitou o aviso.");
 }
 
 function configurarAvisos() {
