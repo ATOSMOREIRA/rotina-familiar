@@ -108,13 +108,28 @@ li { margin: .8mm 0; font-size: 9.5pt; }
 </tbody></table>
 <div class="note">⏰ Horário: <b>sábado à tarde</b> (domingo fica livre para família, visitas e cuidados pessoais).</div></section>
 
-<section class="card warm"><h2>📌 Calendário de tarefas quinzenais e mensais <span class="sub">· exemplo: out/nov/dez 2026</span></h2><table><thead><tr><th>Data (sábado)</th><th>O que fazer</th></tr></thead><tbody>
-<tr><td class="t">24/10</td><td>Tarefas quinzenais (geladeira, fogão, roupa de cama, janelas)</td></tr>
-<tr><td class="t">31/10</td><td>Tarefas quinzenais + tarefas mensais <span class="sub">(1º sábado do mês: cortinas, ventiladores, guarda-roupa, brinquedos, despensa, limpeza profunda de vidros)</span></td></tr>
-<tr><td class="t">14/11</td><td>Tarefas quinzenais</td></tr>
-<tr><td class="t">28/11</td><td>Tarefas quinzenais + tarefas mensais <span class="sub">(1º sábado do mês)</span></td></tr>
-<tr><td class="t">12/12</td><td>Tarefas quinzenais</td></tr>
-</tbody></table></section>
+<section class="card warm" id="calendario" data-ancora="2026-10-31" data-qtd="6"><h2>📌 Calendário de tarefas quinzenais e mensais <span class="sub">· próximas datas, atualiza sozinho</span></h2><table><thead><tr><th>Data (sábado)</th><th>O que fazer</th></tr></thead><tbody id="cal-corpo"></tbody></table></section>
+<script>
+(function () {
+  // Regra: quinzenais a cada 14 dias a partir da data-ancora; mensais a cada 2ª data (28 dias).
+  var sec = document.getElementById("calendario"); if (!sec) return;
+  var p = sec.dataset.ancora.split("-").map(Number);
+  var ancora = new Date(p[0], p[1] - 1, p[2], 12), qtd = +sec.dataset.qtd || 6;
+  var hoje = new Date(); hoje.setHours(12, 0, 0, 0);
+  var DIA = 86400000, ciclo = Math.max(0, Math.ceil((hoje - ancora) / (14 * DIA)));
+  var linhas = "";
+  for (var i = 0; i < qtd; i++) {
+    var n = ciclo + i, d = new Date(ancora.getTime() + n * 14 * DIA);
+    d = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+    var dd = String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+    var mensal = n % 2 === 0;
+    linhas += '<tr><td class="t">' + dd + '</td><td>Tarefas quinzenais' +
+      (mensal ? ' + tarefas mensais <span class="sub">(cortinas, ventiladores, guarda-roupa, brinquedos, despensa, limpeza profunda de vidros)</span>'
+              : ' <span class="sub">(geladeira, fogão, roupa de cama, janelas)</span>') + '</td></tr>';
+  }
+  document.getElementById("cal-corpo").innerHTML = linhas;
+})();
+</script>
 
 <div class="grid">
 <section class="card"><h2>🧺 Lavanderia</h2><table><thead><tr><th>Dia</th><th>O que lavar</th></tr></thead><tbody>

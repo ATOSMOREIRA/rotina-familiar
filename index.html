@@ -49,7 +49,13 @@ async function atualizar() {
     const doc = new DOMParser().parseFromString(await buscar(), "text/html");
     document.getElementById("tema").textContent =
       [...doc.querySelectorAll("style")].map(s => s.textContent).join("\n");
-    document.getElementById("conteudo").innerHTML = doc.body.innerHTML;
+    const box = document.getElementById("conteudo");
+    box.innerHTML = doc.body.innerHTML;
+    // innerHTML não executa <script>: recria os scripts do conteúdo (ex.: calendário automático)
+    box.querySelectorAll("script").forEach(old => {
+      const novo = document.createElement("script");
+      novo.textContent = old.textContent; old.replaceWith(novo);
+    });
     st.textContent = "· atualizado às " + new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
   } catch (e) {
     document.getElementById("conteudo").innerHTML = `<div class="erro">${e.message}</div>`;
