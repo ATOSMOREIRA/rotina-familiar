@@ -2,6 +2,8 @@
   "titulo": "Rotina Familiar",
   "subtitulo": "Luana, Atos, Lara Sthefany, Ana Laura e Amora · Araguaína-TO",
 
+  "planilha": "",
+
   "_ajuda": "dias: 0=domingo, 1=segunda ... 6=sábado. Use 'hora' (HH:MM) ou 'periodo' (manha, tarde, noite, dia). tipo: rotina, casa, pet, tela. Itens 'casa' e 'pet' têm caixinha de marcar; nos demais use \"marcar\": true.",
 
   "rodizio": {

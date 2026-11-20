@@ -260,6 +260,42 @@ function atualizaProgresso() {
   el.hidden = !todas.length;
 }
 
+/* ---------- sincronização com a planilha do Google (opcional) ---------- */
+let pend = {};
+try { pend = JSON.parse(localStorage.getItem("rotina-pend") || "{}"); } catch (_) {}
+const gravarPend = () => { try { localStorage.setItem("rotina-pend", JSON.stringify(pend)); } catch (_) {} };
+const mostrarSync = t => { const el = document.getElementById("sync"); if (el) el.textContent = t; };
+let enviando = false;
+
+async function enviarPend() {
+  if (!dados?.planilha || enviando) return;
+  enviando = true;
+  try {
+    for (const k of Object.keys(pend)) {
+      const v = pend[k];
+      const r = await fetch(dados.planilha, { method: "POST", body: JSON.stringify({ chave: k, feito: !!v }) });
+      const j = await r.json();
+      if (!j.ok) throw new Error("recusado");
+      if (pend[k] === v) delete pend[k];
+    }
+  } catch (_) { mostrarSync(" · sem conexão com a planilha"); }
+  finally { enviando = false; gravarPend(); }
+}
+
+async function sincronizar() {
+  if (!dados?.planilha) return;
+  await enviarPend();
+  try {
+    const r = await fetch(`${dados.planilha}?desde=${iso(soma(hojeData(), -60))}`, { cache: "no-store" });
+    const j = await r.json(); if (!j.ok) throw new Error("recusado");
+    const novo = {}; j.feitos.forEach(k => { novo[k] = 1; });
+    Object.keys(pend).forEach(k => { if (pend[k]) novo[k] = 1; else delete novo[k]; });
+    const a = Object.keys(novo).sort().join("\n"), b = Object.keys(feitos).sort().join("\n");
+    if (a !== b) { feitos = novo; gravarFeitos(); desenhar(); }
+    mostrarSync(" · planilha sincronizada");
+  } catch (_) { mostrarSync(" · sem conexão com a planilha"); }
+}
+
 /* ---------- dados ---------- */
 async function buscar() {
   try {
@@ -416,7 +452,8 @@ async function atualizar() {
   try {
     dados = await buscar(); ultimaCarga = Date.now();
     desenhar();
-    document.getElementById("rodape").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    document.getElementById("rodape").innerHTML = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) + '<span id="sync"></span>';
+    sincronizar();
   } catch (e) {
     document.getElementById("app").innerHTML = `<div class="erro">${esc(e.message)} Tente atualizar de novo.</div>`;
   } finally { btn.disabled = false; btn.classList.remove("girando"); rot.textContent = "Atualizar"; }
@@ -433,6 +470,7 @@ document.getElementById("app").addEventListener("change", e => {
   const c = e.target.closest("input[data-chk]"); if (!c) return;
   if (c.checked) feitos[c.dataset.chk] = 1; else delete feitos[c.dataset.chk];
   gravarFeitos();
+  if (dados?.planilha) { pend[c.dataset.chk] = c.checked ? 1 : 0; gravarPend(); enviarPend(); }
   const linha = c.closest(".item, li, .fixa"); if (linha) linha.classList.toggle("feito", c.checked);
   atualizaProgresso();
 });
@@ -453,8 +491,10 @@ appEl.addEventListener("touchend", e => {
   if (Math.abs(dx) > 70 && Math.abs(dy) < 45) passo(dx < 0 ? 1 : -1);
 }, { passive:true });
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && Date.now() - ultimaCarga > 5 * 60 * 1000) atualizar();
+  if (document.hidden) return;
+  if (Date.now() - ultimaCarga > 5 * 60 * 1000) atualizar(); else sincronizar();
 });
+setInterval(() => { if (!document.hidden) sincronizar(); }, 30000);
 addEventListener("hashchange", () => { lerHash(); if (dados) desenhar(); });
 
 lerHash();
