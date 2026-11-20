@@ -31,6 +31,14 @@ const NTFY_TOPICO = "troque-por-um-nome-longo-e-secreto";
 // de rede do Google, que é compartilhado, e recusa os avisos com o erro 429.
 // Como obter: ntfy.sh/app > Sign up > menu Account > Access tokens > Create token.
 const NTFY_TOKEN = "";
+
+// ALTERNATIVA: enviar pelo Telegram (mais confiável a partir do Google). Se os dois campos abaixo
+// estiverem preenchidos, os avisos vão pelo Telegram em vez do ntfy.
+// Como obter: no Telegram, fale com @BotFather > /newbot > copie o token do bot (TELEGRAM_BOT_TOKEN).
+// Crie um grupo da família, adicione o bot e as pessoas, envie /start no grupo, rode a função
+// descobrirChatId aqui no Apps Script e copie o número que aparecer no log (TELEGRAM_CHAT_ID).
+const TELEGRAM_BOT_TOKEN = "";
+const TELEGRAM_CHAT_ID = "";
 const SITE = "https://atosmoreira.github.io/rotina-familiar/";
 const FUSO = "America/Araguaina";
 const URL_ROTINA = "https://raw.githubusercontent.com/ATOSMOREIRA/rotina-familiar/main/rotina.json";
@@ -160,8 +168,40 @@ function feitosEntre_(ini, fim) {
   return set;
 }
 
-// Envia pelo ntfy. Devolve true se o ntfy aceitou; registra o motivo no log se não aceitou.
+function htmlEsc_(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function enviarTelegram_(titulo, mensagem, click) {
+  try {
+    const texto = "<b>" + htmlEsc_(titulo) + "</b>\n" + htmlEsc_(mensagem) + "\n" + (click || SITE);
+    const r = UrlFetchApp.fetch("https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage", {
+      method: "post", contentType: "application/json", muteHttpExceptions: true,
+      payload: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: texto, parse_mode: "HTML", disable_web_page_preview: true })
+    });
+    const cod = r.getResponseCode();
+    if (cod >= 200 && cod < 300) return true;
+    Logger.log("Telegram recusou o aviso (" + cod + "): " + r.getContentText().slice(0, 300));
+  } catch (e) {
+    Logger.log("Falha ao falar com o Telegram: " + e);
+  }
+  return false;
+}
+
+// Rode uma vez depois de adicionar o bot ao grupo e enviar /start nele: mostra o número do grupo.
+function descobrirChatId() {
+  const r = UrlFetchApp.fetch("https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/getUpdates", { muteHttpExceptions: true });
+  const j = JSON.parse(r.getContentText()), vistos = {};
+  (j.result || []).forEach(function (u) {
+    const c = (u.message && u.message.chat) || (u.my_chat_member && u.my_chat_member.chat) || (u.channel_post && u.channel_post.chat);
+    if (c) vistos[c.id] = c.title || c.first_name || c.type;
+  });
+  const ids = Object.keys(vistos);
+  Logger.log(ids.length ? ids.map(function (i) { return "TELEGRAM_CHAT_ID = \"" + i + "\"   (" + vistos[i] + ")"; }).join("\n")
+    : "Nenhuma conversa encontrada. Adicione o bot ao grupo, envie /start nele e rode de novo. Resposta: " + r.getContentText().slice(0, 200));
+}
+
+// Envia pelo Telegram (se configurado) ou pelo ntfy. Devolve true se o ntfy aceitou; registra o motivo no log se não aceitou.
 function enviar_(titulo, mensagem, click) {
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) return enviarTelegram_(titulo, mensagem, click);
   try {
     const cab = NTFY_TOKEN ? { Authorization: "Bearer " + NTFY_TOKEN } : {};
     const r = UrlFetchApp.fetch("https://ntfy.sh/", {
@@ -241,10 +281,11 @@ function verificar() {
 
 // Mostra no "Registro de execução" o que aconteceu. Se der erro aqui, o problema é de envio.
 function testarAviso() {
-  if (NTFY_TOPICO.indexOf("troque-por") === 0) throw new Error("Troque NTFY_TOPICO no topo do arquivo pelo nome do seu tópico.");
+  const usaTelegram = TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID;
+  if (!usaTelegram && NTFY_TOPICO.indexOf("troque-por") === 0) throw new Error("Troque NTFY_TOPICO no topo do arquivo pelo nome do seu tópico.");
   const ok = enviar_("🏡 Rotina Familiar", "Teste de aviso: se você leu isto, as notificações estão funcionando.");
-  if (!ok) throw new Error("O ntfy não aceitou o aviso. Veja a linha acima no Registro de execução.");
-  Logger.log("OK: o ntfy aceitou o aviso para o tópico " + NTFY_TOPICO + ". Se não chegou no celular, confira se o nome do tópico no app é idêntico.");
+  if (!ok) throw new Error("O aviso não foi aceito. Veja a linha acima no Registro de execução.");
+  Logger.log(usaTelegram ? "OK: o Telegram aceitou o aviso." : "OK: o ntfy aceitou o aviso para o tópico " + NTFY_TOPICO + ". Se não chegou no celular, confira se o nome do tópico no app é idêntico.");
 }
 
 function configurarAvisos() {
