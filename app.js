@@ -57,8 +57,12 @@ const gravarHash = () => history.replaceState(null, "", `#v=${estado.v}&d=${iso(
 
 /* ---------- marcações ---------- */
 const estadoDe = k => feitos[k] || 0;
-const marcavel = i => i.marcar ?? (i.tipo === "casa" || i.tipo === "pet");
+const padraoMarcavel = i => i.marcar ?? (i.tipo === "casa" || i.tipo === "pet");
+const temSubs = i => !!i.subitens?.length;
+const subsMarcaveis = i => temSubs(i) && padraoMarcavel(i);      // cada subitem tem a própria caixinha
+const marcavel = i => !temSubs(i) && padraoMarcavel(i);          // o grupo em si não é marcado
 const kItem = (d, i) => `${iso(d)}|i|${i.titulo}|${i._chave}`;
+const kSub = (d, i, s) => `${iso(d)}|sub|${i.titulo}|${s}`;
 const kExtra = (d, tipo, nome) => `${iso(d)}|${tipo}|${nome}`;
 
 function setEstado(k, v) {
@@ -204,17 +208,25 @@ function controles(k, nome, d) {
 }
 
 /* ---------- visão do dia ---------- */
+function subLista(i, d) {
+  const feitas = i.subitens.filter(s => estadoDe(kSub(d, i, s)) === 1).length;
+  return `<small class="sub-prog">${feitas} de ${i.subitens.length} feitas</small>
+    <ul class="subs">${i.subitens.map(s => { const k = kSub(d, i, s), e = estadoDe(k);
+      return `<li class="${e === 1 ? "feito" : ""} ${e === 2 ? "dispensada" : ""}"><label class="mk">${e === 2 ? '<span class="sem-caixa">⏭</span>' : caixa(k)}<span>${esc(s)}${e === 2 ? ' <small class="quem">dispensada</small>' : ""}${quemTxt(k)}</span></label>
+        <span class="acoes">${botaoPular(k, s, d)}</span></li>`; }).join("")}</ul>`;
+}
+
 function itemHtml(i, d, agora, ehHoje, proximoRef) {
   const passou = ehHoje && i.hora && i.hora < agora;
   const eh = i === proximoRef, k = kItem(d, i), m = marcavel(i);
   const disp = m && estadoDe(k) === 2;
   const rot = i.hora || PERIODO_ROTULO[i.periodo] || "";
-  return `<li class="item ${esc(i.tipo)} ${passou ? "passou" : ""} ${eh ? "proximo" : ""} ${m && estadoDe(k) === 1 ? "feito" : ""} ${disp ? "dispensada" : ""}">
+  return `<li class="item ${esc(i.tipo)} ${passou ? "passou" : ""} ${eh ? "proximo" : ""} ${m && estadoDe(k) === 1 ? "feito" : ""} ${disp ? "dispensada" : ""} ${subsMarcaveis(i) && i.subitens.every(s => estadoDe(kSub(d, i, s)) === 1) ? "feito" : ""}">
     <div class="hora">${esc(rot)}</div>
     <div class="corpo"><b><span class="ic">${esc(i.icone)}</span>${esc(i.titulo)}</b>
       ${disp ? '<small class="quem">dispensada</small>' : ""}
       ${i.detalhe ? `<small>${esc(i.detalhe)}</small>` : ""}
-      ${i.subitens ? `<ul>${i.subitens.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+      ${subsMarcaveis(i) ? subLista(i, d) : (i.subitens ? `<ul>${i.subitens.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : "")}
       ${m ? quemTxt(k) : ""}
     </div>${m ? controles(k, i.titulo, d) : (i._evento ? `<span class="acoes"><button type="button" class="pular" data-del="evento|${esc(i._evento)}" aria-label="Apagar evento">✕</button></span>` : "<span></span>")}</li>`;
 }
@@ -313,7 +325,7 @@ function renderSemana() {
     return `<div role="button" tabindex="0" class="dia-card ${iso(x) === hj ? "hoje" : ""}" data-go="${iso(x)}" data-abrir="1">
       <header><h3>${NOMES[x.getDay()]}</h3><span>${curta(x)}</span></header>
       ${c?.txt ? `<div class="mini-cardapio">🍽️ ${esc(c.txt)}</div>` : ""}
-      ${itens.map(i => { const e = marcavel(i) ? estadoDe(kItem(x, i)) : 0;
+      ${itens.map(i => { const e = marcavel(i) ? estadoDe(kItem(x, i)) : (subsMarcaveis(i) && i.subitens.every(s => estadoDe(kSub(x, i, s)) === 1) ? 1 : 0);
         return `<div class="mini ${esc(i.tipo)} ${e === 1 ? "feito" : ""} ${e === 2 ? "dispensada" : ""}"><i>${esc(i.hora || PERIODO_ROTULO[i.periodo])}</i><span>${esc(i.icone)} ${esc(i.titulo)}</span></div>`; }).join("")}
     </div>`;
   }).join("");
@@ -327,7 +339,11 @@ function renderSemana() {
 /* ---------- resumo / supervisão ---------- */
 function tarefasDoDia(d) {
   const lista = [];
-  itensDoDia(d).filter(marcavel).forEach(i => lista.push({ k:kItem(d, i), nome:i.titulo, cat: i.tipo === "pet" ? "Pets" : i.tipo === "casa" ? "Casa" : "Rotina" }));
+  itensDoDia(d).forEach(i => {
+    const cat = i.tipo === "pet" ? "Pets" : i.tipo === "casa" ? "Casa" : "Rotina";
+    if (subsMarcaveis(i)) i.subitens.forEach(s => lista.push({ k:kSub(d, i, s), nome:s, cat }));
+    else if (marcavel(i)) lista.push({ k:kItem(d, i), nome:i.titulo, cat });
+  });
   zonasDaSemana(d).forEach(p => p.zona.areas.forEach(a => lista.push({ k:kExtra(d, "area", a.nome), nome:a.nome, cat:"Zonas", pessoa:p.nome })));
   dados.fixas.forEach(f => lista.push({ k:kExtra(d, "fixa", f.titulo), nome:f.titulo, cat:"Tarefas fixas" }));
   return lista.map(t => ({ ...t, feito: estadoDe(t.k) === 1, disp: estadoDe(t.k) === 2 }));
@@ -496,6 +512,40 @@ function renderMais() {
   </div>`;
 }
 
+/* ---------- parabéns ao concluir o dia ---------- */
+let celebrado = guardado("rotina-celebrado", {});
+(function () { const corte = iso(soma(hojeData(), -30)); Object.keys(celebrado).forEach(k => { if (k < corte) delete celebrado[k]; }); })();
+
+function diaCompleto(d) {
+  const ts = tarefasDoDia(d).filter(t => !t.disp);
+  return ts.length > 0 && ts.every(t => t.feito);
+}
+
+const FRASES = [
+  ["Missão cumprida!", "Todas as tarefas {dia} foram concluídas. A família está de parabéns!"],
+  ["Dia fechado com chave de ouro!", "Tudo {dia} está feito. Bom descanso, vocês merecem!"],
+  ["Que equipe!", "Nenhuma tarefa ficou para trás {dia}. Orgulho da família!"],
+  ["Tudo em ordem!", "Casa em dia, rotina cumprida {dia}. Parabéns a todos!"],
+];
+let festaTimer = null;
+function festejar(d) {
+  const ymd = iso(d); if (celebrado[ymd]) return;
+  celebrado[ymd] = 1; guardar("rotina-celebrado", celebrado);
+  const hoje = ymd === iso(hojeData());
+  const [titulo, texto] = FRASES[Math.floor(Math.random() * FRASES.length)];
+  const dia = hoje ? "de hoje" : `de ${NOMES[d.getDay()].toLowerCase()}, ${longa(d)}`;
+  const el = $("festa");
+  const confete = Array.from({ length: 32 }, () => `<span class="confete" style="left:${Math.random() * 100}%;animation-duration:${2.6 + Math.random() * 2.4}s;animation-delay:${Math.random() * 0.9}s">${["🎉","🎊","⭐","✨","💚","🌟"][Math.floor(Math.random() * 6)]}</span>`).join("");
+  el.innerHTML = `${confete}<div class="festa-card" role="alert"><div class="grande">🏆</div>
+    <h2>${esc(titulo)}</h2><p>${esc(eu ? `${eu}, ${texto.replace("{dia}", dia).replace(/^./, c => c.toLowerCase())}` : texto.replace("{dia}", dia))}</p>
+    <button type="button" class="btn" data-fechar-festa="1">Valeu!</button></div>`;
+  el.hidden = false;
+  try { navigator.vibrate?.([120, 60, 120, 60, 240]); } catch (_) {}
+  clearTimeout(festaTimer); festaTimer = setTimeout(fecharFesta, 9000);
+}
+function fecharFesta() { clearTimeout(festaTimer); $("festa").hidden = true; $("festa").innerHTML = ""; }
+$("festa").addEventListener("click", e => { if (e.target === $("festa") || e.target.closest("[data-fechar-festa]")) fecharFesta(); });
+
 /* ---------- janelinha (dispensar/adiar, quem é você) ---------- */
 function folha(html, aoEscolher) {
   const dlg = $("folha");
@@ -530,9 +580,11 @@ function abrirPular(botao) {
   folha(`<h3>${esc(nome)}</h3>
     <button type="button" class="btn" data-opcao="adiar">Adiar para amanhã</button>
     <button type="button" class="btn" data-opcao="dispensar">Dispensar hoje (não conta na nota)</button>`, op => {
+    const d = estado.data, antes = diaCompleto(d);
     setEstado(k, 2);
     if (op === "adiar") salvarDado("adiada", uid(), { nome, de: dia, para: iso(soma(parse(dia), 1)), k });
     desenhar();
+    if (!antes && diaCompleto(d)) festejar(d);
   });
 }
 function restaurar(k) {
@@ -587,7 +639,12 @@ document.querySelector(".controles .seg").addEventListener("click", e => { const
 
 $("app").addEventListener("change", e => {
   const c = e.target;
-  if (c.matches("input[data-chk]")) { setEstado(c.dataset.chk, c.checked ? 1 : 0); desenhar(); return; }
+  if (c.matches("input[data-chk]")) {
+    const d = estado.data, antes = diaCompleto(d);
+    setEstado(c.dataset.chk, c.checked ? 1 : 0); desenhar();
+    if (!antes && diaCompleto(d)) festejar(d);
+    return;
+  }
   if (c.matches("input[data-cardapio]")) { const t = c.value.trim(); salvarDado("cardapio", c.dataset.cardapio, t ? { txt: t } : null); return; }
   if (c.matches("input[data-compra]")) { const id = c.dataset.compra; salvarDado("compra", id, { ...extras.compra[id], ok: c.checked }); desenhar(); }
 });

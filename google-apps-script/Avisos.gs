@@ -17,6 +17,7 @@
  *       prazoTarefasCasa "20:30"    prazo das tarefas sem horário (zonas, fixas...): avisa o que não foi marcado
  *       resumoManha "07:00"         o que ficou sem fazer ontem
  *       resumoSemana {dia, hora}    resultado da semana (dia: 0=domingo ... 6=sábado)
+ *       parabens false              desliga o aviso de parabéns quando o dia inteiro é concluído
  *
  * Importante: as chaves das tarefas aqui espelham as do index.html. Se mudar a regra
  * de tarefas lá (zonas, quinzenais...), mude aqui também.
@@ -36,7 +37,9 @@ function mod_(a, n) { return ((a % n) + n) % n; }
 function diaNum_(ymd) { const p = ymd.split("-").map(Number); return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 864e5); }
 function diaSemana_(ymd) { return new Date(diaNum_(ymd) * 864e5).getUTCDay(); }
 function hhmm_(s) { const p = s.split(":"); return Number(p[0]) * 60 + Number(p[1]); }
-function marcavel_(i) { return i.marcar != null ? i.marcar : (i.tipo === "casa" || i.tipo === "pet"); }
+function padraoMarcavel_(i) { return i.marcar != null ? i.marcar : (i.tipo === "casa" || i.tipo === "pet"); }
+function temSubs_(i) { return !!(i.subitens && i.subitens.length); }
+function marcavel_(i) { return !temSubs_(i) && padraoMarcavel_(i); }   // o grupo em si não é marcado; cada subitem é uma tarefa
 
 // Dados compartilhados da planilha (aba "Dados"): tarefas extras, eventos e tarefas adiadas
 function extrasDe_(lista) {
@@ -60,7 +63,8 @@ function itensDoDia_(dados, ymd) {
     const dd = n - diaNum_(q.ancora);
     if (dd % 14 === 0) {
       const mensal = mod_(dd / 14, 2) === 0;
-      lista.push({ periodo: "tarde", icone: "🧽", tipo: "casa", titulo: mensal ? "Tarefas quinzenais e mensais" : "Tarefas quinzenais" });
+      lista.push({ periodo: "tarde", icone: "🧽", tipo: "casa", titulo: mensal ? "Tarefas quinzenais e mensais" : "Tarefas quinzenais",
+        subitens: mensal ? q.quinzenais.concat(q.mensais) : q.quinzenais });
     }
   }
   Object.keys(ex.evento).forEach(function (id) {
@@ -86,8 +90,9 @@ function zonasDaSemana_(dados, ymd) {
 // Mesmas chaves que o index.html grava na planilha
 function tarefasDoDia_(dados, ymd) {
   const lista = [];
-  itensDoDia_(dados, ymd).filter(marcavel_).forEach(function (i) {
-    lista.push({ k: ymd + "|i|" + i.titulo + "|" + i._chave, nome: i.titulo, hora: i.aviso || i.hora || null });
+  itensDoDia_(dados, ymd).forEach(function (i) {
+    if (temSubs_(i) && padraoMarcavel_(i)) i.subitens.forEach(function (s) { lista.push({ k: ymd + "|sub|" + i.titulo + "|" + s, nome: s, hora: null }); });
+    else if (marcavel_(i)) lista.push({ k: ymd + "|i|" + i.titulo + "|" + i._chave, nome: i.titulo, hora: i.aviso || i.hora || null });
   });
   zonasDaSemana_(dados, ymd).forEach(function (p) {
     p.zona.areas.forEach(function (a) { lista.push({ k: ymd + "|area|" + a.nome, nome: a.nome, pessoa: p.nome }); });
@@ -113,6 +118,15 @@ function mensagemPendencias_(dados, ymd, feitosSet) {
   const linhas = falta.slice(0, 10).map(function (t) { return "• " + t.nome + (t.pessoa ? " (" + t.pessoa + ")" : ""); });
   if (falta.length > 10) linhas.push("… e mais " + (falta.length - 10));
   return { titulo: "⏳ Faltam " + falta.length + " tarefa" + (falta.length > 1 ? "s" : "") + " hoje", mensagem: linhas.join("\n") };
+}
+
+// Todas as tarefas do dia concluídas (as dispensadas não contam). null se ainda falta alguma.
+function mensagemParabens_(dados, ymd, feitosSet) {
+  const ts = tarefasDoDia_(dados, ymd).filter(function (t) { return feitosSet[t.k] !== 2; });
+  if (!ts.length || ts.some(function (t) { return feitosSet[t.k] !== 1; })) return null;
+  const frases = ["Missão cumprida!", "Dia fechado com chave de ouro!", "Que equipe!", "Tudo em ordem!"];
+  const f = frases[diaNum_(ymd) % frases.length];
+  return { titulo: "🏆 " + f + " Parabéns, família!", mensagem: "Todas as " + ts.length + " tarefas de hoje foram concluídas. Bom trabalho, pessoal! 🎉" };
 }
 
 // Tarefas sem horário (zonas, fixas, "ao longo do dia") que não foram marcadas
@@ -246,7 +260,14 @@ function verificar() {
     if (m) mandar("prazo", m.titulo, m.mensagem); else marcar("prazo");
   }
 
-  // 3) lembrete geral do que falta no dia
+  // parabéns assim que o dia inteiro estiver concluído
+  if (cfg.parabens !== false && !jaFoi("parabens")) {
+    const m = mensagemParabens_(dados, ymd, feitosHoje);
+    if (m) mandar("parabens", m.titulo, m.mensagem);
+  }
+
+  // 3) lembrete geral do que falta no dia (se já foi dado o parabéns, não repete)
+  if (cfg.lembretePendencias && devido(cfg.lembretePendencias) && !jaFoi("pendencias") && jaFoi("parabens")) marcar("pendencias");
   if (cfg.lembretePendencias && devido(cfg.lembretePendencias) && !jaFoi("pendencias")) {
     const m = mensagemPendencias_(dados, ymd, feitosHoje);
     mandar("pendencias", m.titulo, m.mensagem);

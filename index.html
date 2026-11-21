@@ -218,6 +218,22 @@ label.chk { display:flex; align-items:flex-start; justify-content:center; width:
 .dispensada { opacity:.55; }
 .dispensada .corpo b, .dispensada .mk b { font-style:italic; }
 .sem-caixa { width:22px; text-align:center; flex:none; }
+.corpo ul.subs { list-style:none; margin:6px 0 0; padding:0; color:var(--ink); font-size:14px; }
+.subs li { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; padding:4px 0; margin:0; border-top:1px dashed var(--line); }
+.subs li:first-child { border-top:0; }
+.subs .mk { flex:1; }
+.sub-prog { color:var(--accent) !important; font-weight:600; }
+#festa { position:fixed; inset:0; z-index:60; display:grid; place-items:center; padding:16px; background:rgba(0,0,0,.4); overflow:hidden; }
+#festa[hidden] { display:none; }
+.festa-card { position:relative; background:var(--card); color:var(--ink); border-radius:26px; padding:28px 24px 22px; max-width:360px; width:100%; text-align:center;
+  box-shadow:0 24px 70px rgba(0,0,0,.4); animation:pop .4s cubic-bezier(.2,1.4,.4,1); display:grid; gap:10px; }
+.festa-card .grande { font-size:60px; line-height:1; }
+.festa-card h2 { margin:0; font:700 25px/1.15 var(--serif); }
+.festa-card p { margin:0; color:var(--mut); }
+.confete { position:absolute; top:-30px; font-size:24px; animation:cai linear forwards; pointer-events:none; }
+@keyframes cai { to { transform:translateY(115vh) rotate(540deg); } }
+@keyframes pop { from { transform:scale(.7); opacity:0; } }
+@media (prefers-reduced-motion:reduce) { .confete { display:none; } .festa-card { animation:none; } }
 .mini-seg { display:flex; width:100%; margin-bottom:8px; }
 .mini-seg button { flex:1; padding:6px 10px; font-size:13px; }
 .mini.dispensada span { text-decoration:line-through; }
@@ -308,6 +324,7 @@ dialog#folha::backdrop { background:rgba(0,0,0,.45); }
 </div>
 
 <dialog id="folha"></dialog>
+<div id="festa" hidden></div>
 <script src="app.js"></script>
 </body>
 </html>
